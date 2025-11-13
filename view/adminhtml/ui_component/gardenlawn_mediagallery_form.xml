@@ -135,6 +135,11 @@
             </argument>
         </field>
         <dynamicRows name="assets">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="dataProvider" xsi:type="string">gardenlawn_mediagallery_asset_form_data_source</item>
+                </item>
+            </argument>
             <settings>
                 <label translate="true">Existing Assets</label>
                 <addButton translate="true" title="Add Asset"/>
