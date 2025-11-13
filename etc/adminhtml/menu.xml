@@ -1,11 +1,18 @@
 <?xml version="1.0"?>
-<config
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
-        <add id="GardenLawn_MediaGallery::add_row" title="Media Gallery Catalog" translate="title"
-             module="GardenLawn_MediaGallery" parent="Magento_MediaGalleryUi::media" sortOrder="10"
-             dependsOnModule="GardenLawn_MediaGallery" action="mediagallery/grid"
-             resource="GardenLawn_MediaGallery::manager"/>
+        <add id="GardenLawn_MediaGallery::mediagallery"
+             title="Media Gallery"
+             module="GardenLawn_MediaGallery"
+             sortOrder="50"
+             parent="Magento_Backend::content"
+             resource="GardenLawn_MediaGallery::mediagallery"/>
+        <add id="GardenLawn_MediaGallery::gallery_list"
+             title="Manage Galleries"
+             module="GardenLawn_MediaGallery"
+             sortOrder="10"
+             action="mediagallery/gallery/index"
+             parent="GardenLawn_MediaGallery::mediagallery"
+             resource="GardenLawn_MediaGallery::gallery_list"/>
     </menu>
 </config>

@@ -1,0 +1,16 @@
+<div class="admin__field-control control">
+    <div class="admin__field-control-wrap">
+        <input class="admin__control-text" type="text" data-bind="
+            value: value,
+            attr: {
+                name: inputName,
+                placeholder: placeholder
+            }"
+        />
+        <!-- ko if: value -->
+        <div class="asset-preview">
+            <img data-bind="attr: {src: value}" style="max-width: 100px; max-height: 100px; margin-top: 10px;"/>
+        </div>
+        <!-- /ko -->
+    </div>
+</div>

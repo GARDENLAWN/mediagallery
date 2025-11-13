@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::content">
+                    <resource id="GardenLawn_MediaGallery::mediagallery" title="Media Gallery" sortOrder="50">
+                        <resource id="GardenLawn_MediaGallery::gallery_list" title="Manage Galleries" sortOrder="10"/>
+                        <resource id="GardenLawn_MediaGallery::gallery_save" title="Save Gallery" sortOrder="20"/>
+                        <resource id="GardenLawn_MediaGallery::gallery_delete" title="Delete Gallery" sortOrder="30"/>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

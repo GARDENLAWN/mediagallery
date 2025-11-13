@@ -1,30 +1,46 @@
-<?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="GardenLawn\MediaGallery\Api\Data\GridInterface" type="GardenLawn\MediaGallery\Model\Grid"/>
-    <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\Grid\Grid\Collection"
-                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+<?xml version="10"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="GardenLawnMediaGalleryGirdFilterPool" type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
         <arguments>
-            <argument name="mainTable" xsi:type="string">gardenlawn_mediagallery</argument>
-            <argument name="resourceModel" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Grid</argument>
+            <argument name="appliers" xsi:type="array">
+                <item name="regular" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\RegularFilter</item>
+                <item name="fulltext" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\FulltextFilter</item>
+            </argument>
         </arguments>
     </virtualType>
-    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+    <virtualType name="GardenLawnMediaGalleryGalleryDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
         <arguments>
-            <argument name="collections" xsi:type="array">
-                <item name="mediagallery_record_grid_list_data_source" xsi:type="string">
-                    GardenLawn\MediaGallery\Model\ResourceModel\Grid\Grid\Collection
+            <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
+            <argument name="filterPool" xsi:type="virtualObject">GardenLawnMediaGalleryGirdFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <type name="gardenlawn_mediagallery_listing_data_source">
+        <arguments>
+            <argument name="name" xsi:type="string">gardenlawn_mediagallery_listing_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="collectionFactory" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory</argument>
+        </arguments>
+    </type>
+    <type name="gardenlawn_mediagallery_form_data_source">
+        <arguments>
+            <argument name="name" xsi:type="string">gardenlawn_mediagallery_form_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="collectionFactory" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory</argument>
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="submit_url" xsi:type="url" path="mediagallery/gallery/save"/>
                 </item>
             </argument>
         </arguments>
     </type>
-    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+    <type name="gardenlawn_mediagallery_asset_form_data_source">
         <arguments>
-            <argument name="collections" xsi:type="array">
-                <item name="mediagallery_record_comment_list_data_source" xsi:type="string">
-                    GardenLawn\MediaGallery\Model\ResourceModel\MediaGalleryComment\MediaGalleryComment\Collection
-                </item>
-            </argument>
+            <argument name="name" xsi:type="string">gardenlawn_mediagallery_asset_form_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">asset_id</argument>
+            <argument name="requestFieldName" xsi:type="string">asset_id</argument>
+            <argument name="collectionFactory" xsi:type="object">GardenLawn\MediaGalleryAsset\Model\ResourceModel\Asset\CollectionFactory</argument>
         </arguments>
     </type>
 </config>
