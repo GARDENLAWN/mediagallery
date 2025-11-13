@@ -1,0 +1,86 @@
+<?php
+/** @var \GardenLawn\MediaGallery\Block\Gallery $block */
+
+$galleryId = (int)$block->getData('gallery_id');
+if (!$galleryId) {
+    return;
+}
+
+$gallery = $block->getGallery($galleryId);
+if (!$gallery || !$gallery->getEnabled()) {
+    return;
+}
+
+$assets = $block->getGalleryAssets($galleryId);
+if (!$assets->getSize()) {
+    return;
+}
+?>
+
+<div class="media-gallery">
+    <h2><?= $block->escapeHtml($gallery->getName()) ?></h2>
+    <div class="media-gallery-assets">
+        <?php foreach ($assets as $asset) : ?>
+            <?php
+            $filePath = $asset->getFilePath();
+            $altText = $asset->getAltText() ?: $gallery->getName();
+            $mediaUrl = $block->getMediaUrl($filePath);
+            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+            ?>
+            <div class="media-gallery-asset">
+                <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) : ?>
+                    <img src="<?= $block->escapeUrl($mediaUrl) ?>" alt="<?= $block->escapeHtmlAttr($altText) ?>" loading="lazy"/>
+                <?php elseif (in_array($fileExtension, ['mp4', 'mov', 'avi'])) : ?>
+                    <video controls preload="metadata">
+                        <source src="<?= $block->escapeUrl($mediaUrl) ?>" type="video/<?= $block->escapeHtmlAttr($fileExtension) ?>">
+                        <?= $block->escapeHtml(__('Your browser does not support the video tag.')) ?>
+                    </video>
+                <?php else : ?>
+                    <a href="<?= $block->escapeUrl($mediaUrl) ?>" target="_blank"><?= $block->escapeHtml($altText) ?></a>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<style>
+    .media-gallery {
+        margin-bottom: 20px;
+        border: 1px solid #eee;
+        padding: 15px;
+        background-color: #f9f9f9;
+    }
+    .media-gallery h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .media-gallery-assets {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    .media-gallery-asset {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .media-gallery-asset img,
+    .media-gallery-asset video {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    .media-gallery-asset a {
+        display: block;
+        margin-top: 10px;
+        color: #007bff;
+        text-decoration: none;
+    }
+    .media-gallery-asset a:hover {
+        text-decoration: underline;
+    }
+</style>

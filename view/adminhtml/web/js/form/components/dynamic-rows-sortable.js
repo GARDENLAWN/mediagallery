@@ -17,21 +17,62 @@ define([
         },
 
         /**
+         * Stores the original order before a drag-and-drop operation.
+         * Used to revert changes if AJAX update fails.
+         */
+        _originalOrder: [],
+
+        /**
          * Initializes observable properties.
          *
          * @returns {Object} Chainable.
          */
         initObservable: function () {
             this._super();
+
+            // Store original order when component initializes or data changes
+            this.observe('records');
+            this.on('records', this._storeOriginalOrder.bind(this));
+
             return this;
+        },
+
+        /**
+         * Stores the current order of records.
+         * @private
+         */
+        _storeOriginalOrder: function () {
+            this._originalOrder = this.records().map(function (record) {
+                return {
+                    asset_id: record.getChild('asset_id').value(),
+                    sortorder: record.getChild('sortorder').value()
+                };
+            });
+        },
+
+        /**
+         * Reverts the order of records to the last successfully saved state.
+         * @private
+         */
+        _revertOrder: function () {
+            var self = this;
+            // Re-apply original sort orders to records
+            this.records().forEach(function (record) {
+                var originalData = _.find(self._originalOrder, {asset_id: record.getChild('asset_id').value()});
+                if (originalData) {
+                    record.getChild('sortorder').value(originalData.sortorder);
+                }
+            });
+            // Trigger re-sorting of UI elements based on updated sortorder values
+            this.sort(this.sorting);
+            alert({
+                content: $.mage.__('Sort order could not be saved. Display order has been reverted.')
+            });
         },
 
         /**
          * Callback on sortOrder change.
          * This function is triggered when the sortOrder of any record changes (e.g., after drag and drop).
-         *
-         * @param {Number} newSortOrder - The new sort order value.
-         * @param {Object} record - The record object that was sorted.
          */
         onSortOrderChange: function () {
             var self = this,
@@ -66,13 +107,17 @@ define([
                 dataType: 'json',
                 showLoader: true,
                 success: function (response) {
-                    if (!response.success) {
+                    if (response.success) {
+                        self._storeOriginalOrder(); // Update original order on successful save
+                    } else {
+                        self._revertOrder(); // Revert on failure
                         alert({
                             content: response.message || $.mage.__('Failed to update sort order.')
                         });
                     }
                 },
                 error: function (xhr, status, error) {
+                    self._revertOrder(); // Revert on AJAX error
                     alert({
                         content: $.mage.__('An error occurred while updating sort order: %1').replace('%1', error)
                     });

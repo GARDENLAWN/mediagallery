@@ -1,9 +1,8 @@
-<?xml version="1.0" ?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
     <router id="standard">
-        <route frontName="mediagallery" id="mediagallery">
-            <module name="GardenLawn_MediaGallery"/>
+        <route id="mediagallery_frontend" frontName="mediagallery_frontend">
+            <module name="GardenLawn_MediaGallery" />
         </route>
     </router>
 </config>
