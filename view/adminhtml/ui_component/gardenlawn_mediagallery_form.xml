@@ -137,7 +137,9 @@
         <dynamicRows name="assets">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">GardenLawn_MediaGallery/js/form/components/dynamic-rows-sortable</item>
                     <item name="dataProvider" xsi:type="string">gardenlawn_mediagallery_asset_form_data_source</item>
+                    <item name="updateSortOrderUrl" xsi:type="url" path="mediagalleryasset/asset/updatesortorder"/>
                 </item>
             </argument>
             <settings>
