@@ -1,0 +1,54 @@
+.gallery-env {
+    .gallery-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px; // Odstęp między kafelkami
+
+        .image-item {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative; // Dla pozycjonowania elementów wewnątrz
+
+            .image-item-thumbnail {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain; // Obraz będzie skalowany, aby zmieścić się w kafelku
+            }
+
+            .image-item-actions {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                padding: 5px;
+                display: none; // Domyślnie ukryte
+                justify-content: space-between;
+                align-items: center;
+
+                .admin__field-label {
+                    margin-bottom: 0;
+                    color: white;
+                }
+
+                .action-delete {
+                    background: none;
+                    border: none;
+                    color: #f00;
+                    cursor: pointer;
+                    font-size: 1.2em;
+                }
+            }
+
+            &:hover .image-item-actions {
+                display: flex; // Pokaż akcje po najechaniu
+            }
+        }
+    }
+}
