@@ -14,12 +14,11 @@
             <argument name="filterPool" xsi:type="object">GardenLawnMediaGalleryGirdFilterPool</argument>
         </arguments>
     </virtualType>
-    <type name="gardenlawn_mediagallery_listing_data_source">
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
-            <argument name="name" xsi:type="string">gardenlawn_mediagallery_listing_data_source</argument>
-            <argument name="primaryFieldName" xsi:type="string">id</argument>
-            <argument name="requestFieldName" xsi:type="string">id</argument>
-            <argument name="collectionFactory" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory</argument>
+            <argument name="collections" xsi:type="array">
+                <item name="gardenlawn_mediagallery_listing_data_source" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</item>
+            </argument>
         </arguments>
     </type>
     <type name="gardenlawn_mediagallery_form_data_source">
