@@ -8,12 +8,6 @@
             </argument>
         </arguments>
     </type>
-    <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
-        <arguments>
-            <argument name="mainTable" xsi:type="string">gardenlawn_mediagallery</argument>
-            <argument name="resourceModel" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery</argument>
-        </arguments>
-    </virtualType>
     <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\Asset\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
             <argument name="mainTable" xsi:type="string">media_gallery_asset</argument>
