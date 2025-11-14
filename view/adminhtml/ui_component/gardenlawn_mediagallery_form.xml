@@ -11,35 +11,26 @@
             <item name="namespace" xsi:type="string">gardenlawn_mediagallery_form</item>
         </item>
         <item name="template" xsi:type="string">templates/form/with-buttons</item>
+        <item name="buttons" xsi:type="array">
+            <item name="back" xsi:type="string">GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\BackButton</item>
+            <item name="delete" xsi:type="string">GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\DeleteButton</item>
+            <item name="save" xsi:type="string">GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\SaveButton</item>
+            <item name="save_and_continue" xsi:type="string">GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\SaveAndContinueButton</item>
+        </item>
     </argument>
-    <settings>
-        <buttons>
-            <button name="back" class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\BackButton"/>
-            <button name="delete" class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\DeleteButton"/>
-            <button name="save" class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\SaveButton"/>
-            <button name="save_and_continue" class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\SaveAndContinueButton"/>
-        </buttons>
-        <dataSource name="gardenlawn_mediagallery_form_data_source">
-            <argument name="dataProvider" xsi:type="configurableObject">
-                <argument name="class" xsi:type="string">GardenLawn\MediaGallery\Ui\DataProvider\Gallery\FormDataProvider</argument>
-                <argument name="name" xsi:type="string">gardenlawn_mediagallery_form_data_source</argument>
-                <argument name="primaryFieldName" xsi:type="string">id</argument>
-                <argument name="requestFieldName" xsi:type="string">id</argument>
-                <argument name="data" xsi:type="array">
-                    <item name="config" xsi:type="array">
-                        <item name="submit_url" xsi:type="url" path="mediagallery/gallery/save"/>
-                    </item>
-                </argument>
+    <dataSource name="gardenlawn_mediagallery_form_data_source">
+        <argument name="dataProvider" xsi:type="configurableObject">
+            <argument name="class" xsi:type="string">GardenLawn\MediaGallery\Ui\DataProvider\Gallery\FormDataProvider</argument>
+            <argument name="name" xsi:type="string">gardenlawn_mediagallery_form_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="submit_url" xsi:type="url" path="mediagallery/gallery/save"/>
+                </item>
             </argument>
-            <settings>
-                <submitUrl path="mediagallery/gallery/save"/>
-            </settings>
-        </dataSource>
-        <layout>
-            <navContainer name="left" enabled="false"/>
-            <container name="bottom" enabled="false"/>
-        </layout>
-    </settings>
+        </argument>
+    </dataSource>
     <fieldset name="general">
         <settings>
             <label translate="true">General Information</label>
@@ -144,8 +135,7 @@
             </argument>
             <settings>
                 <label translate="true">Existing Assets</label>
-                <addButton translate="true" title="Add Asset"/>
-                <deleteButton translate="true" title="Delete Asset"/>
+                <addButtonLabel translate="true">Add Asset</addButtonLabel>
                 <visible>true</visible>
                 <componentType>dynamicRows</componentType>
                 <dndConfig>
@@ -198,11 +188,15 @@
                     </settings>
                 </field>
                 <field name="enabled" formElement="checkbox">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="default" xsi:type="number">1</item>
+                        </item>
+                    </argument>
                     <settings>
                         <dataType>boolean</dataType>
                         <label translate="true">Enabled</label>
                         <dataScope>enabled</dataScope>
-                        <default>1</default>
                     </settings>
                     <formElements>
                         <checkbox>
