@@ -1,11 +1,15 @@
 <?php
 namespace GardenLawn\MediaGallery\Model;
 
+use Exception;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
-use Psr\Log\LoggerInterface; // Dodano LoggerInterface
+use Psr\Log\LoggerInterface;
+use Magento\Framework\App\RequestInterface; // Dodano RequestInterface
 
 class DataProvider extends AbstractDataProvider
 {
@@ -13,7 +17,8 @@ class DataProvider extends AbstractDataProvider
     protected $loadedData;
     protected ResourceConnection $resourceConnection;
     protected StoreManagerInterface $storeManager;
-    protected LoggerInterface $logger; // Dodano LoggerInterface
+    protected LoggerInterface $logger;
+    protected RequestInterface $request; // Dodano RequestInterface
 
     public function __construct(
         $name,
@@ -22,18 +27,20 @@ class DataProvider extends AbstractDataProvider
         CollectionFactory $collectionFactory,
         ResourceConnection $resourceConnection,
         StoreManagerInterface $storeManager,
-        LoggerInterface $logger, // Wstrzykujemy LoggerInterface
+        LoggerInterface $logger,
+        RequestInterface $request, // Wstrzykujemy RequestInterface
         array $meta = [],
         array $data = []
     ) {
         $this->collection = $collectionFactory->create();
         $this->resourceConnection = $resourceConnection;
         $this->storeManager = $storeManager;
-        $this->logger = $logger; // Przypisujemy LoggerInterface
+        $this->logger = $logger;
+        $this->request = $request; // Przypisujemy RequestInterface
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
-    public function getData()
+    public function getData(): array
     {
         if (isset($this->loadedData)) {
             return $this->loadedData;
@@ -50,6 +57,17 @@ class DataProvider extends AbstractDataProvider
 
             $this->loadedData[$galleryId] = $galleryData;
         }
+
+        // Obsługa przypadku, gdy tworzona jest nowa galeria (brak ID w request)
+        // Wtedy $items jest puste, a $loadedData również.
+        // Musimy zapewnić, że 'images' jest zawsze tablicą.
+        $requestedId = $this->request->getParam($this->getRequestFieldName());
+        if (empty($this->loadedData) && $requestedId === null) {
+            // Dla nowej galerii, użyjemy tymczasowego klucza '0' lub 'new'
+            // Magento UI Component często oczekuje klucza numerycznego dla nowo tworzonych encji
+            $this->loadedData[0]['images'] = [];
+        }
+
 
         return $this->loadedData;
     }
@@ -84,14 +102,17 @@ class DataProvider extends AbstractDataProvider
                 ];
             }
             return $formattedAssets;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->critical(sprintf('MediaGallery DataProvider: Error fetching associated assets for gallery ID %d: %s', $galleryId, $e->getMessage()), ['exception' => $e]);
             return []; // Zwróć pustą tablicę w przypadku błędu
         }
     }
 
+    /**
+     * @throws NoSuchEntityException
+     */
     private function getMediaUrl($path): string
     {
-        return $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . $path;
+        return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA) . $path;
     }
 }
