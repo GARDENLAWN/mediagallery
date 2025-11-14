@@ -23,4 +23,13 @@
             <argument name="resourceModel" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Asset</argument>
         </arguments>
     </virtualType>
+
+    <!-- Rejestracja komendy CLI -->
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="gardenlawnPopulateAssetLinks" xsi:type="object">GardenLawn\MediaGallery\Console\Command\PopulateAssetLinks</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

@@ -4,52 +4,48 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\MediaStorage\Model\File\UploaderFactory; // Corrected UploaderFactory
-use Magento\MediaGalleryApi\Api\Data\AssetInterfaceFactory;
-use Magento\MediaGalleryApi\Api\AssetRepositoryInterface;
+use Magento\MediaStorage\Model\File\UploaderFactory;
+use GardenLawn\MediaGallery\Model\AssetFactory; // Używamy własnej fabryki Asset
 
 class Upload extends Action
 {
     protected JsonFactory $resultJsonFactory;
-    protected UploaderFactory $uploaderFactory; // Changed to UploaderFactory
-    protected AssetInterfaceFactory $assetFactory;
-    protected AssetRepositoryInterface $assetRepository;
+    protected UploaderFactory $uploaderFactory;
+    protected AssetFactory $assetFactory; // Zmieniono na własną fabrykę Asset
 
     public function __construct(
         Context $context,
         JsonFactory $resultJsonFactory,
-        UploaderFactory $uploaderFactory, // Injected UploaderFactory
-        AssetInterfaceFactory $assetFactory,
-        AssetRepositoryInterface $assetRepository
+        UploaderFactory $uploaderFactory,
+        AssetFactory $assetFactory // Wstrzykujemy własną fabrykę Asset
     ) {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
-        $this->uploaderFactory = $uploaderFactory; // Assigned UploaderFactory
-        $this->assetFactory = $assetFactory;
-        $this->assetRepository = $assetRepository;
+        $this->uploaderFactory = $uploaderFactory;
+        $this->assetFactory = $assetFactory; // Przypisujemy własną fabrykę Asset
     }
 
     public function execute()
     {
         try {
-            $uploader = $this->uploaderFactory->create(['fileId' => 'image']); // Create Uploader instance
+            $uploader = $this->uploaderFactory->create(['fileId' => 'image']);
             $uploader->setAllowedExtensions(['jpg', 'jpeg', 'gif', 'png']);
             $uploader->setAllowRenameFiles(true);
             $uploader->setFilesDispersion(true);
 
-            $result = $uploader->saveFileToTmpDir(); // Save file to tmp directory
+            $result = $uploader->saveFileToTmpDir();
 
-            // The path returned by saveFileToTmpDir is relative to the media directory
-            // We need to ensure it's correctly stored as an asset path.
-            // Magento's MediaGalleryApi expects paths relative to the media base directory.
-            $assetPath = 'tmp' . $result['file']; // Path in tmp folder
+            // Ścieżka zwrócona przez saveFileToTmpDir jest względna do katalogu media/tmp
+            // Musimy ją zapisać w bazie danych w formacie, który będzie używany do generowania URL-i
+            // W przypadku S3, $result['file'] powinien być już kluczem obiektu S3,
+            // ale dla spójności z lokalnym przechowywaniem, często jest to ścieżka względna do base/media
+            $assetPath = 'tmp' . $result['file']; // Przykład: 'tmp/m/a/image.jpg'
 
-            $asset = $this->assetFactory->create();
-            $asset->setPath($assetPath); // Set the path for the asset
-            $asset->setTitle($result['name']); // Use original file name as title
-            $this->assetRepository->save($asset);
+            $asset = $this->assetFactory->create(); // Tworzymy instancję własnego modelu Asset
+            $asset->setPath($assetPath);
+            $asset->setTitle($result['name']);
+            $asset->save(); // Zapisujemy model Asset do bazy danych
 
-            // Return data in a format expected by the UI component
             $result['cookie'] = [
                 'name' => session_name(),
                 'value' => $this->_getSession()->getSessionId(),
@@ -57,10 +53,8 @@ class Upload extends Action
                 'path' => $this->_getSession()->getCookiePath(),
                 'domain' => $this->_getSession()->getCookieDomain(),
             ];
-            // Add asset ID and full URL for the frontend component
             $result['asset_id'] = $asset->getId();
             $result['url'] = $this->_urlBuilder->getBaseUrl(['_type' => \Magento\Framework\UrlInterface::URL_TYPE_MEDIA]) . $assetPath;
-
 
         } catch (\Exception $e) {
             $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
