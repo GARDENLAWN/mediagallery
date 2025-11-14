@@ -20,8 +20,9 @@ class LinkAssets
     public function execute(): void
     {
         $this->logger->info('Starting GardenLawn MediaGallery asset linking cron job.');
+        $connection = $this->resource->getConnection();
+        $connection->beginTransaction();
         try {
-            $connection = $this->resource->getConnection();
             $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
             $gardenLawnMediaGalleryTable = $connection->getTableName('gardenlawn_mediagallery');
 
@@ -35,9 +36,11 @@ class LinkAssets
             ";
 
             $rowCount = $connection->query($query)->rowCount();
+            $connection->commit();
 
             $this->logger->info(sprintf('GardenLawn MediaGallery cron job finished. Updated %d assets.', $rowCount));
         } catch (\Exception $e) {
+            $connection->rollBack();
             $this->logger->critical('Error in GardenLawn MediaGallery asset linking cron job: ' . $e->getMessage(), ['exception' => $e]);
         }
     }
