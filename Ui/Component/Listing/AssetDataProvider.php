@@ -7,8 +7,8 @@ use Magento\Ui\DataProvider\AbstractDataProvider;
 
 class AssetDataProvider extends AbstractDataProvider
 {
-    protected $collection;
-    protected $request;
+    protected RequestInterface $request;
+    protected $loadedData;
 
     public function __construct(
         $name,
@@ -24,15 +24,23 @@ class AssetDataProvider extends AbstractDataProvider
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
-    public function getData()
+    public function getData(): array
     {
+        if (isset($this->loadedData)) {
+            return $this->loadedData;
+        }
+
         $galleryId = $this->request->getParam('id');
+        $this->collection->clear(); // Clear previous filters and orders
+
         if ($galleryId) {
             $this->collection->addFieldToFilter('mediagallery_id', $galleryId);
         } else {
-            // No gallery selected, return empty collection
+            // No gallery selected, effectively return empty collection
             $this->collection->addFieldToFilter('mediagallery_id', -1);
         }
-        return $this->collection->toArray();
+
+        $this->loadedData = $this->collection->toArray();
+        return $this->loadedData;
     }
 }

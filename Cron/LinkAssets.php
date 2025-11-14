@@ -25,23 +25,20 @@ class LinkAssets
             $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
             $gardenLawnMediaGalleryTable = $connection->getTableName('gardenlawn_mediagallery');
 
-            $query = $connection->updateFromSelect(
-                new \Magento\Framework\DB\Select($connection),
-                ['mga' => $mediaGalleryAssetTable],
-                ['mga.mediagallery_id' => 'gmg.id']
-            )->join(
-                ['gmg' => $gardenLawnMediaGalleryTable],
-                "mga.path LIKE CONCAT(gmg.name, '/%')",
-                []
-            )->where(
-                'mga.mediagallery_id IS NULL'
-            );
+            // Using a raw but clear UPDATE ... JOIN query
+            $query = "
+                UPDATE {$mediaGalleryAssetTable} AS mga
+                JOIN {$gardenLawnMediaGalleryTable} AS gmg
+                  ON mga.path LIKE CONCAT(gmg.name, '/%')
+                SET mga.mediagallery_id = gmg.id
+                WHERE mga.mediagallery_id IS NULL;
+            ";
 
             $rowCount = $connection->query($query)->rowCount();
 
             $this->logger->info(sprintf('GardenLawn MediaGallery cron job finished. Updated %d assets.', $rowCount));
         } catch (\Exception $e) {
-            $this->logger->critical('Error in GardenLawn MediaGallery asset linking cron job: ' . $e->getMessage());
+            $this->logger->critical('Error in GardenLawn MediaGallery asset linking cron job: ' . $e->getMessage(), ['exception' => $e]);
         }
     }
 }
