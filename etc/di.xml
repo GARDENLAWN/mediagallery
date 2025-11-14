@@ -8,16 +8,22 @@
             </argument>
         </arguments>
     </virtualType>
-    <virtualType name="GardenLawnMediaGalleryGalleryDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+    <virtualType name="GardenLawnMediaGalleryGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
         <arguments>
-            <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
-            <argument name="filterPool" xsi:type="object">GardenLawnMediaGalleryGirdFilterPool</argument>
+            <argument name="collection" xsi:type="object" shared="false">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
+            <argument name="filterPool" xsi:type="object" shared="false">GardenLawnMediaGalleryGirdFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">gardenlawn_mediagallery</argument>
+            <argument name="resourceModel" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery</argument>
         </arguments>
     </virtualType>
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
-                <item name="gardenlawn_mediagallery_listing_data_source" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</item>
+                <item name="gardenlawn_mediagallery_listing_data_source" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Grid\Collection</item>
             </argument>
         </arguments>
     </type>
