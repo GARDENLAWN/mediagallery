@@ -59,6 +59,14 @@ class PopulateAssetLinks extends Command
                     continue;
                 }
 
+                // Find the maximum sort_order for the current gallery
+                $maxSortOrder = (int)$connection->fetchOne(
+                    $connection->select()
+                        ->from($linkTable, new \Zend_Db_Expr('MAX(sort_order)'))
+                        ->where('gallery_id = ?', $galleryId)
+                );
+                $currentSortOrder = $maxSortOrder + 1;
+
                 // Find assets that match the gallery name prefix and are not yet linked
                 $query = $connection->select()
                     ->from(['mga' => $mediaGalleryAssetTable], ['id'])
@@ -78,7 +86,7 @@ class PopulateAssetLinks extends Command
                         $linksToInsert[] = [
                             'gallery_id' => $galleryId,
                             'asset_id' => $assetId,
-                            'sort_order' => 0, // Default sort order
+                            'sort_order' => $currentSortOrder++, // Inkrementacja sort_order
                             'enabled' => 1      // Default enabled status
                         ];
                     }
