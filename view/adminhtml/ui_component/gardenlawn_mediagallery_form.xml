@@ -109,7 +109,7 @@
         <field name="images">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="formElement" xsi:type="string">input</item> <!-- Changed to input for testing -->
+                    <item name="formElement" xsi:type="string">fileUploader</item> <!-- Reverted to fileUploader -->
                     <item name="component" xsi:type="string">GardenLawn_MediaGallery/js/form/element/gallery</item>
                     <item name="dataType" xsi:type="string">array</item>
                     <item name="template" xsi:type="string">GardenLawn_MediaGallery/form/element/gallery</item>
