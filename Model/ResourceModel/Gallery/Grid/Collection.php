@@ -34,10 +34,11 @@ class Collection extends SearchResult
     {
         parent::_initSelect();
 
+        // Zmieniono join, aby używał nowej tabeli łączącej gardenlawn_mediagallery_asset_link
         $this->getSelect()->joinLeft(
-            ['mga' => $this->getTable('media_gallery_asset')],
-            'main_table.id = mga.mediagallery_id',
-            ['asset_count' => 'COUNT(mga.id)']
+            ['gmal' => $this->getTable('gardenlawn_mediagallery_asset_link')],
+            'main_table.id = gmal.gallery_id',
+            ['asset_count' => 'COUNT(gmal.asset_id)'] // Zliczamy asset_id z tabeli łączącej
         )->group('main_table.id');
 
         return $this;
