@@ -114,7 +114,7 @@
                     <item name="dataType" xsi:type="string">array</item> <!-- Jawnie ustawiono dataType na array -->
                     <item name="template" xsi:type="string">ui/form/field</item>
                     <item name="dataScope" xsi:type="string">images</item>
-                    <item name="label" xsi:type="string" translate="true">Gallery Images</item> <!-- Dodano label -->
+                    <item name="label" xsi:type="string" translate="true">Gallery Images</item>
                     <item name="uploaderConfig" xsi:type="array">
                         <item name="url" xsi:type="url" path="gardenlawn_mediagallery/index/upload"/>
                     </item>

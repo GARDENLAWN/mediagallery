@@ -8,7 +8,7 @@
             'ui-floating': true
          }">
         <!-- ko foreach: images -->
-        <div class="image-item" data-role="image-item" data-bind="template: { name: $parent.imageTemplate, data: $data }"></div>
+        <div class="image-item" data-role="image-item" data-bind="template: { name: $parent.getImageTemplate(), data: $data }"></div>
         <!-- /ko -->
     </div>
     <div class="image-uploader" data-role="image-uploader">

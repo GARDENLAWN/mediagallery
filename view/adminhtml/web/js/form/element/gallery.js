@@ -16,6 +16,9 @@ define([
 
         initialize: function () {
             this._super();
+            // Compile the image template once during initialization
+            this.compiledImageTemplate = mageTemplate(this.imageTemplate);
+
             // Inicjalizuj obserwowalną tablicę 'images' danymi z 'value'
             // 'value' pochodzi z AssetDataProvider i zawiera już pełne dane obrazów
             // Upewnij się, że 'enabled' jest obserwowalne
@@ -85,7 +88,7 @@ define([
          * Zwraca szablon dla pojedynczego obrazu.
          */
         getImageTemplate: function () {
-            return mageTemplate(this.imageTemplate);
+            return this.compiledImageTemplate; // Zwracamy skompilowany szablon
         },
 
         /**
