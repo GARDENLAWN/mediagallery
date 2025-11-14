@@ -3,9 +3,8 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Magento_Backend::content" title="GardenLawn Media Gallery Config" sortOrder="100">
-                    <!-- Odwołujemy się do zasobu utworzonego przez menu.xml -->
-                    <resource id="GardenLawn_MediaGallery::mediagallery">
+                <resource id="Magento_Backend::content">
+                    <resource id="GardenLawn_MediaGallery::mediagallery" title="Media Gallery" sortOrder="50"> <!-- Dodano title i sortOrder -->
                         <resource id="GardenLawn_MediaGallery::gallery_list" title="Manage Galleries" sortOrder="10"/>
                         <resource id="GardenLawn_MediaGallery::gallery_save" title="Save Gallery" sortOrder="20"/>
                         <resource id="GardenLawn_MediaGallery::gallery_delete" title="Delete Gallery" sortOrder="30"/>
