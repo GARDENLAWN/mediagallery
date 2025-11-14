@@ -5,6 +5,7 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Framework\App\Request\DataPersistorInterface;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\ResultInterface;
@@ -14,14 +15,17 @@ class Save extends Action
 {
     protected GalleryFactory $galleryFactory;
     protected DataPersistorInterface $dataPersistor;
+    protected ResourceConnection $resourceConnection;
 
     public function __construct(
         Context $context,
         GalleryFactory $galleryFactory,
-        DataPersistorInterface $dataPersistor
+        DataPersistorInterface $dataPersistor,
+        ResourceConnection $resourceConnection
     ) {
         $this->galleryFactory = $galleryFactory;
         $this->dataPersistor = $dataPersistor;
+        $this->resourceConnection = $resourceConnection;
         parent::__construct($context);
     }
 
@@ -41,6 +45,7 @@ class Save extends Action
 
             try {
                 $model->save();
+                $this->saveImages($model->getId(), $data['images'] ?? []);
                 $this->messageManager->addSuccessMessage(__('You saved the gallery.'));
                 $this->dataPersistor->clear('mediagallery_gallery');
 
@@ -58,6 +63,32 @@ class Save extends Action
             return $resultRedirect->setPath('*/*/edit', ['id' => $this->getRequest()->getParam('id')]);
         }
         return $resultRedirect->setPath('*/*/');
+    }
+
+    protected function saveImages(int $galleryId, array $images): void
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
+        $assetTable = $connection->getTableName('media_gallery_asset');
+
+        $connection->delete($linkTable, ['gallery_id = ?' => $galleryId]);
+
+        $imageLinks = [];
+        foreach ($images as $image) {
+            $select = $connection->select()->from($assetTable, 'id')->where('path = ?', $image['file']);
+            $assetId = $connection->fetchOne($select);
+            if ($assetId) {
+                $imageLinks[] = [
+                    'gallery_id' => $galleryId,
+                    'asset_id' => $assetId,
+                    'sort_order' => $image['position']
+                ];
+            }
+        }
+
+        if (!empty($imageLinks)) {
+            $connection->insertMultiple($linkTable, $imageLinks);
+        }
     }
 
     protected function _isAllowed(): bool

@@ -106,20 +106,18 @@
                 <item name="sortOrder" xsi:type="number">20</item>
             </item>
         </argument>
-        <insertListing>
+        <field name="images">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="autoRender" xsi:type="boolean">true</item>
-                    <item name="ns" xsi:type="string">gardenlawn_mediagallery_asset_listing</item>
-                    <item name="externalProvider" xsi:type="string">gardenlawn_mediagallery_asset_listing.gardenlawn_mediagallery_asset_listing_data_source</item>
-                    <item name="imports" xsi:type="array">
-                        <item name="galleryId" xsi:type="string">${ $.provider }:data.id</item>
-                    </item>
-                    <item name="exports" xsi:type="array">
-                        <item name="galleryId" xsi:type="string">${ $.externalProvider }:params.id</item>
+                    <item name="formElement" xsi:type="string">GardenLawn_MediaGallery/js/form/element/gallery</item>
+                    <item name="componentType" xsi:type="string">fileUploader</item>
+                    <item name="template" xsi:type="string">ui/form/field</item>
+                    <item name="dataScope" xsi:type="string">images</item>
+                    <item name="uploaderConfig" xsi:type="array">
+                        <item name="url" xsi:type="url" path="gardenlawn_mediagallery/index/upload"/>
                     </item>
                 </item>
             </argument>
-        </insertListing>
+        </field>
     </fieldset>
 </form>

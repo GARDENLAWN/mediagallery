@@ -3,11 +3,13 @@ namespace GardenLawn\MediaGallery\Ui\Component\Listing;
 
 use GardenLawn\MediaGallery\Model\ResourceModel\Asset\CollectionFactory;
 use Magento\Framework\App\RequestInterface;
+use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 
 class AssetDataProvider extends AbstractDataProvider
 {
     protected RequestInterface $request;
+    protected StoreManagerInterface $storeManager;
     protected $loadedData;
 
     public function __construct(
@@ -16,11 +18,13 @@ class AssetDataProvider extends AbstractDataProvider
         $requestFieldName,
         CollectionFactory $collectionFactory,
         RequestInterface $request,
+        StoreManagerInterface $storeManager,
         array $meta = [],
         array $data = []
     ) {
         $this->collection = $collectionFactory->create();
         $this->request = $request;
+        $this->storeManager = $storeManager;
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
@@ -31,16 +35,34 @@ class AssetDataProvider extends AbstractDataProvider
         }
 
         $galleryId = $this->request->getParam('id');
-        $this->collection->clear(); // Clear previous filters and orders
+        $this->collection->clear();
 
         if ($galleryId) {
-            $this->collection->addFieldToFilter('mediagallery_id', $galleryId);
+            $this->collection->getSelect()->join(
+                ['link' => $this->collection->getTable('gardenlawn_mediagallery_asset_link')],
+                'main_table.id = link.asset_id',
+                ['sort_order']
+            )->where('link.gallery_id = ?', $galleryId);
         } else {
-            // No gallery selected, effectively return empty collection
-            $this->collection->addFieldToFilter('mediagallery_id', -1);
+            $this->collection->getSelect()->where('1=0');
         }
 
-        $this->loadedData = $this->collection->toArray();
+        $items = $this->collection->getItems();
+        $this->loadedData = [];
+        foreach ($items as $item) {
+            $this->loadedData[$item->getId()]['images'][] = [
+                'file' => $item->getPath(),
+                'url' => $this->getMediaUrl($item->getPath()),
+                'position' => $item->getSortOrder(),
+                'is_main' => false,
+            ];
+        }
+
         return $this->loadedData;
+    }
+
+    private function getMediaUrl($path): string
+    {
+        return $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . $path;
     }
 }
