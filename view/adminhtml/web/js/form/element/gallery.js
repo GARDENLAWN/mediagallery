@@ -3,14 +3,15 @@ define([
     'jquery',
     'ko', // Dodano Knockout.js
     'mage/template',
-    'Magento_Ui/js/modal/modal'
+    'Magento_Ui/js/modal/modal',
+    'jquery-ui-modules/sortable' // Dodano tę zależność
 ], function (Element, $, ko, mageTemplate) {
     'use strict';
 
     return Element.extend({
         defaults: {
-            template: 'GardenLawn_MediaGallery/form/element/gallery',
-            imageTemplate: 'GardenLawn_MediaGallery/form/element/gallery/image',
+            template: 'text!GardenLawn_MediaGallery/form/element/gallery',
+            imageTemplate: 'text!GardenLawn_MediaGallery/form/element/gallery/image',
             images: ko.observableArray([]) // Obserwowalna tablica do przechowywania obrazów
         },
 

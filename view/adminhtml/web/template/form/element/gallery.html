@@ -1,20 +1,14 @@
 <div class="gallery-env">
     <div class="gallery-images" data-role="gallery-images"
-         data-bind="sortable: {
-            data: images,
-            afterMove: afterSort,
-            tolerance: 'pointer',
-            'ui-floating': true
-         }">
+         data-bind="sortableList: images"> <!-- Zmieniono tutaj -->
         <!-- ko foreach: images -->
         <div class="image-item" data-role="image-item" data-bind="template: { name: $parent.getImageTemplate(), data: $data }"></div>
         <!-- /ko -->
     </div>
-    <!--
+
     <div class="image-uploader" data-role="image-uploader">
         <div class="file-uploader-area">
             <input type="file" data-role="uploader" data-bind="attr: {name: uploaderConfig.name}" />
         </div>
     </div>
-    -->
 </div>
