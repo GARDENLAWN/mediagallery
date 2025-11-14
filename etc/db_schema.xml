@@ -11,4 +11,14 @@
             <column name="id"/>
         </constraint>
     </table>
+    <table name="media_gallery_asset" resource="default" engine="innodb">
+        <column xsi:type="int" name="mediagallery_id" unsigned="true" nullable="true" comment="Media Gallery ID"/>
+        <constraint xsi:type="foreign"
+                    referenceId="GARDENLAWN_MEDIA_GALLERY_ASSET_TO_GALLERY"
+                    table="media_gallery_asset"
+                    column="mediagallery_id"
+                    referenceTable="gardenlawn_mediagallery"
+                    referenceColumn="id"
+                    onDelete="SET NULL" />
+    </table>
 </schema>
