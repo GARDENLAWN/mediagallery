@@ -5,12 +5,15 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Framework\App\Request\DataPersistorInterface;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
 
 class Save extends Action
 {
-    protected $galleryFactory;
-    protected $dataPersistor;
+    protected GalleryFactory $galleryFactory;
+    protected DataPersistorInterface $dataPersistor;
 
     public function __construct(
         Context $context,
@@ -22,7 +25,7 @@ class Save extends Action
         parent::__construct($context);
     }
 
-    public function execute()
+    public function execute(): ResultInterface|ResponseInterface|Redirect
     {
         $resultRedirect = $this->resultRedirectFactory->create();
         $data = $this->getRequest()->getPostValue();
@@ -57,7 +60,7 @@ class Save extends Action
         return $resultRedirect->setPath('*/*/');
     }
 
-    protected function _isAllowed()
+    protected function _isAllowed(): bool
     {
         return $this->_authorization->isAllowed('GardenLawn_MediaGallery::gallery_save');
     }

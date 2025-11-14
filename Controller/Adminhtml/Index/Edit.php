@@ -3,15 +3,20 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Framework\Registry;
 
 class Edit extends Action
 {
-    protected $resultPageFactory;
-    protected $galleryFactory;
-    protected $registry;
+    protected PageFactory $resultPageFactory;
+    protected GalleryFactory $galleryFactory;
+    protected Registry $registry;
 
     public function __construct(
         Context $context,
@@ -25,7 +30,10 @@ class Edit extends Action
         parent::__construct($context);
     }
 
-    public function execute()
+    /**
+     * @throws LocalizedException
+     */
+    public function execute(): Page|ResultInterface|ResponseInterface|Redirect
     {
         $id = $this->getRequest()->getParam('id');
         $model = $this->galleryFactory->create();
@@ -48,7 +56,7 @@ class Edit extends Action
         return $resultPage;
     }
 
-    protected function _isAllowed()
+    protected function _isAllowed(): bool
     {
         return $this->_authorization->isAllowed('GardenLawn_MediaGallery::gallery_save');
     }

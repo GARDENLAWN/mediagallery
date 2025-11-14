@@ -1,21 +1,25 @@
 <?php
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
+use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Backend\App\Action;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Controller\ResultInterface;
 
 class Delete extends Action
 {
-    protected $galleryFactory;
+    protected GalleryFactory $galleryFactory;
 
     public function __construct(
         Action\Context $context,
-        \GardenLawn\MediaGallery\Model\GalleryFactory $galleryFactory
+        GalleryFactory $galleryFactory
     ) {
         $this->galleryFactory = $galleryFactory;
         parent::__construct($context);
     }
 
-    public function execute()
+    public function execute(): ResultInterface|ResponseInterface|Redirect
     {
         $id = $this->getRequest()->getParam('id');
         $resultRedirect = $this->resultRedirectFactory->create();
@@ -35,7 +39,7 @@ class Delete extends Action
         return $resultRedirect->setPath('*/*/');
     }
 
-    protected function _isAllowed()
+    protected function _isAllowed(): bool
     {
         return $this->_authorization->isAllowed('GardenLawn_MediaGallery::gallery_delete');
     }

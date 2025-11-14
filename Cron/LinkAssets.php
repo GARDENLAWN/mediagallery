@@ -6,8 +6,8 @@ use Psr\Log\LoggerInterface;
 
 class LinkAssets
 {
-    protected $resource;
-    protected $logger;
+    protected ResourceConnection $resource;
+    protected LoggerInterface $logger;
 
     public function __construct(
         ResourceConnection $resource,
@@ -17,7 +17,7 @@ class LinkAssets
         $this->logger = $logger;
     }
 
-    public function execute()
+    public function execute(): void
     {
         $this->logger->info('Starting GardenLawn MediaGallery asset linking cron job.');
         try {

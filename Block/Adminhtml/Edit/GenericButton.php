@@ -6,8 +6,8 @@ use Magento\Framework\Registry;
 
 class GenericButton
 {
-    protected $context;
-    protected $registry;
+    protected Context $context;
+    protected Registry $registry;
 
     public function __construct(
         Context $context,
@@ -22,7 +22,7 @@ class GenericButton
         return $this->registry->registry('mediagallery_gallery')->getId();
     }
 
-    public function getUrl($route = '', $params = [])
+    public function getUrl($route = '', $params = []): string
     {
         return $this->context->getUrlBuilder()->getUrl($route, $params);
     }

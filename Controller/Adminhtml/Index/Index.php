@@ -3,11 +3,14 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 
 class Index extends Action
 {
-    protected $resultPageFactory;
+    protected PageFactory $resultPageFactory;
 
     public function __construct(
         Context $context,
@@ -17,7 +20,7 @@ class Index extends Action
         $this->resultPageFactory = $resultPageFactory;
     }
 
-    public function execute()
+    public function execute(): Page|ResultInterface|ResponseInterface
     {
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('GardenLawn_MediaGallery::items');
@@ -25,7 +28,7 @@ class Index extends Action
         return $resultPage;
     }
 
-    protected function _isAllowed()
+    protected function _isAllowed(): bool
     {
         return $this->_authorization->isAllowed('GardenLawn_MediaGallery::items');
     }

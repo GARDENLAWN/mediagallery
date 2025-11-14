@@ -8,6 +8,15 @@
             </argument>
         </arguments>
     </type>
+
+    <!-- Define constructor arguments for the concrete Grid Collection class -->
+    <type name="GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">gardenlawn_mediagallery</argument>
+            <argument name="resourceModel" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery</argument>
+        </arguments>
+    </type>
+
     <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\Asset\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
             <argument name="mainTable" xsi:type="string">media_gallery_asset</argument>
