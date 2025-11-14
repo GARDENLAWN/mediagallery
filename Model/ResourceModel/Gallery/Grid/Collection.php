@@ -34,12 +34,20 @@ class Collection extends SearchResult
     {
         parent::_initSelect();
 
-        // Zmieniono join, aby używał nowej tabeli łączącej gardenlawn_mediagallery_asset_link
-        $this->getSelect()->joinLeft(
-            ['gmal' => $this->getTable('gardenlawn_mediagallery_asset_link')],
-            'main_table.id = gmal.gallery_id',
-            ['asset_count' => 'COUNT(gmal.asset_id)'] // Zliczamy asset_id z tabeli łączącej
-        )->group('main_table.id');
+        try {
+            // Zmieniono join, aby używał nowej tabeli łączącej gardenlawn_mediagallery_asset_link
+            $this->getSelect()->joinLeft(
+                ['gmal' => $this->getTable('gardenlawn_mediagallery_asset_link')],
+                'main_table.id = gmal.gallery_id',
+                ['asset_count' => 'COUNT(gmal.asset_id)'] // Zliczamy asset_id z tabeli łączącej
+            )->group('main_table.id');
+        } catch (\Exception $e) {
+            // Logger jest dostępny poprzez $this->logger z klasy bazowej SearchResult
+            $this->logger->critical(sprintf('MediaGallery Grid Collection: Error initializing select query: %s', $e->getMessage()), ['exception' => $e]);
+            // Możesz zdecydować, czy chcesz rzucić wyjątek dalej, czy po prostu zalogować i kontynuować
+            // W przypadku błędu w _initSelect, lepiej jest, aby błąd był widoczny.
+            throw $e;
+        }
 
         return $this;
     }

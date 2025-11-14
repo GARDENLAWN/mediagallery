@@ -5,12 +5,14 @@ use GardenLawn\MediaGallery\Model\ResourceModel\Asset\CollectionFactory;
 use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
+use Psr\Log\LoggerInterface; // Dodano LoggerInterface
 
 class AssetDataProvider extends AbstractDataProvider
 {
     protected RequestInterface $request;
     protected StoreManagerInterface $storeManager;
     protected $loadedData;
+    protected LoggerInterface $logger; // Dodano LoggerInterface
 
     public function __construct(
         $name,
@@ -19,12 +21,14 @@ class AssetDataProvider extends AbstractDataProvider
         CollectionFactory $collectionFactory,
         RequestInterface $request,
         StoreManagerInterface $storeManager,
+        LoggerInterface $logger, // Wstrzykujemy LoggerInterface
         array $meta = [],
         array $data = []
     ) {
         $this->collection = $collectionFactory->create();
         $this->request = $request;
         $this->storeManager = $storeManager;
+        $this->logger = $logger; // Przypisujemy LoggerInterface
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
@@ -34,32 +38,37 @@ class AssetDataProvider extends AbstractDataProvider
             return $this->loadedData;
         }
 
-        $galleryId = $this->request->getParam('id');
-        $this->collection->clear();
+        try {
+            $galleryId = $this->request->getParam('id');
+            $this->collection->clear();
 
-        if ($galleryId) {
-            $this->collection->getSelect()->join(
-                ['link' => $this->collection->getTable('gardenlawn_mediagallery_asset_link')],
-                'main_table.id = link.asset_id',
-                ['sort_order', 'enabled'] // Dodano 'enabled'
-            )->where('link.gallery_id = ?', $galleryId);
-        } else {
-            $this->collection->getSelect()->where('1=0');
+            if ($galleryId) {
+                $this->collection->getSelect()->join(
+                    ['link' => $this->collection->getTable('gardenlawn_mediagallery_asset_link')],
+                    'main_table.id = link.asset_id',
+                    ['sort_order', 'enabled']
+                )->where('link.gallery_id = ?', $galleryId);
+            } else {
+                // Jeśli nie ma ID galerii (np. nowa galeria), zwróć pustą kolekcję
+                $this->collection->getSelect()->where('1=0');
+            }
+
+            $items = $this->collection->getItems();
+            $this->loadedData = [];
+            foreach ($items as $item) {
+                $this->loadedData[$item->getId()]['images'][] = [
+                    'file' => $item->getPath(),
+                    'url' => $this->getMediaUrl($item->getPath()),
+                    'position' => $item->getSortOrder(),
+                    'is_main' => false,
+                    'enabled' => (bool)$item->getEnabled(),
+                ];
+            }
+            return $this->loadedData;
+        } catch (\Exception $e) {
+            $this->logger->critical(sprintf('MediaGallery AssetDataProvider: Error fetching assets for gallery ID %s: %s', $this->request->getParam('id'), $e->getMessage()), ['exception' => $e]);
+            return []; // Zwróć pustą tablicę w przypadku błędu
         }
-
-        $items = $this->collection->getItems();
-        $this->loadedData = [];
-        foreach ($items as $item) {
-            $this->loadedData[$item->getId()]['images'][] = [
-                'file' => $item->getPath(),
-                'url' => $this->getMediaUrl($item->getPath()),
-                'position' => $item->getSortOrder(),
-                'is_main' => false,
-                'enabled' => (bool)$item->getEnabled(), // Dodano 'enabled'
-            ];
-        }
-
-        return $this->loadedData;
     }
 
     private function getMediaUrl($path): string

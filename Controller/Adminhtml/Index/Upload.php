@@ -5,24 +5,28 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\MediaStorage\Model\File\UploaderFactory;
-use GardenLawn\MediaGallery\Model\AssetFactory; // Używamy własnej fabryki Asset
+use GardenLawn\MediaGallery\Model\AssetFactory;
+use Psr\Log\LoggerInterface; // Dodano LoggerInterface
 
 class Upload extends Action
 {
     protected JsonFactory $resultJsonFactory;
     protected UploaderFactory $uploaderFactory;
-    protected AssetFactory $assetFactory; // Zmieniono na własną fabrykę Asset
+    protected AssetFactory $assetFactory;
+    protected LoggerInterface $logger; // Dodano LoggerInterface
 
     public function __construct(
         Context $context,
         JsonFactory $resultJsonFactory,
         UploaderFactory $uploaderFactory,
-        AssetFactory $assetFactory // Wstrzykujemy własną fabrykę Asset
+        AssetFactory $assetFactory,
+        LoggerInterface $logger // Wstrzykujemy LoggerInterface
     ) {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
         $this->uploaderFactory = $uploaderFactory;
-        $this->assetFactory = $assetFactory; // Przypisujemy własną fabrykę Asset
+        $this->assetFactory = $assetFactory;
+        $this->logger = $logger; // Przypisujemy LoggerInterface
     }
 
     public function execute()
@@ -32,19 +36,17 @@ class Upload extends Action
             $uploader->setAllowedExtensions(['jpg', 'jpeg', 'gif', 'png']);
             $uploader->setAllowRenameFiles(true);
             $uploader->setFilesDispersion(true);
+            $uploader->setMaxFileSize(5 * 1024 * 1024); // Limit do 5MB
+            $uploader->setAllowMimeTypes(true); // Włącz walidację MIME type
 
             $result = $uploader->saveFileToTmpDir();
 
-            // Ścieżka zwrócona przez saveFileToTmpDir jest względna do katalogu media/tmp
-            // Musimy ją zapisać w bazie danych w formacie, który będzie używany do generowania URL-i
-            // W przypadku S3, $result['file'] powinien być już kluczem obiektu S3,
-            // ale dla spójności z lokalnym przechowywaniem, często jest to ścieżka względna do base/media
-            $assetPath = 'tmp' . $result['file']; // Przykład: 'tmp/m/a/image.jpg'
+            $assetPath = 'tmp' . $result['file'];
 
-            $asset = $this->assetFactory->create(); // Tworzymy instancję własnego modelu Asset
+            $asset = $this->assetFactory->create();
             $asset->setPath($assetPath);
             $asset->setTitle($result['name']);
-            $asset->save(); // Zapisujemy model Asset do bazy danych
+            $asset->save();
 
             $result['cookie'] = [
                 'name' => session_name(),
@@ -56,15 +58,18 @@ class Upload extends Action
             $result['asset_id'] = $asset->getId();
             $result['url'] = $this->_urlBuilder->getBaseUrl(['_type' => \Magento\Framework\UrlInterface::URL_TYPE_MEDIA]) . $assetPath;
 
+            $this->logger->info(sprintf('MediaGallery: Successfully uploaded asset "%s" (ID: %d, Path: %s).', $result['name'], $asset->getId(), $assetPath));
+
         } catch (\Exception $e) {
             $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
             $this->messageManager->addErrorMessage($e->getMessage());
+            $this->logger->error(sprintf('MediaGallery: Error uploading asset: %s', $e->getMessage()), ['exception' => $e]);
         }
         return $this->resultJsonFactory->create()->setData($result);
     }
 
     protected function _isAllowed(): bool
     {
-        return $this->_authorization->isAllowed('GardenLawn_MediaGallery::gallery_save');
+        return $this->_authorization->isAllowed('GardenLawn_MediaGallery::asset_upload'); // Zmieniono uprawnienie
     }
 }

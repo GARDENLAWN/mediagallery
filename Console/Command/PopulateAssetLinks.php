@@ -56,6 +56,7 @@ class PopulateAssetLinks extends Command
 
                 if (empty($galleryName)) {
                     $output->writeln(sprintf('<comment>Skipping gallery ID %d: Name is empty.</comment>', $galleryId));
+                    $this->logger->warning(sprintf('MediaGallery CLI: Skipping gallery ID %d because its name is empty.', $galleryId));
                     continue;
                 }
 
@@ -69,7 +70,7 @@ class PopulateAssetLinks extends Command
 
                 // Find assets that match the gallery name prefix and are not yet linked
                 $query = $connection->select()
-                    ->from(['mga' => $mediaGalleryAssetTable], ['id'])
+                    ->from(['mga' => $mediaGalleryAssetTable], ['id', 'path']) // Pobieramy też path do logowania
                     ->where('mga.path LIKE ?', $galleryName . '/%')
                     ->joinLeft(
                         ['gmal' => $linkTable],
@@ -78,36 +79,49 @@ class PopulateAssetLinks extends Command
                     )
                     ->where('gmal.asset_id IS NULL');
 
-                $assetIdsToLink = $connection->fetchCol($query);
+                $assetsToLink = $connection->fetchAll($query); // Pobieramy wszystkie dane, nie tylko kolumnę ID
 
-                if (!empty($assetIdsToLink)) {
+                if (!empty($assetsToLink)) {
                     $linksToInsert = [];
-                    foreach ($assetIdsToLink as $assetId) {
+                    foreach ($assetsToLink as $asset) {
+                        // Dodatkowa walidacja: upewnij się, że asset_id jest liczbą
+                        if (!is_numeric($asset['id'])) {
+                            $this->logger->warning(sprintf('MediaGallery CLI: Skipping asset with invalid ID "%s" (path: %s) for gallery ID %d.', $asset['id'], $asset['path'], $galleryId));
+                            continue;
+                        }
                         $linksToInsert[] = [
                             'gallery_id' => $galleryId,
-                            'asset_id' => $assetId,
-                            'sort_order' => $currentSortOrder++, // Inkrementacja sort_order
-                            'enabled' => 1      // Default enabled status
+                            'asset_id' => (int)$asset['id'],
+                            'sort_order' => $currentSortOrder++,
+                            'enabled' => 1
                         ];
                     }
-                    $connection->insertMultiple($linkTable, $linksToInsert);
-                    $insertedCount = count($linksToInsert);
-                    $totalLinksInserted += $insertedCount;
-                    $output->writeln(sprintf('<info>  Linked %d assets to gallery "%s" (ID: %d).</info>', $insertedCount, $galleryName, $galleryId));
+
+                    if (!empty($linksToInsert)) {
+                        $connection->insertMultiple($linkTable, $linksToInsert);
+                        $insertedCount = count($linksToInsert);
+                        $totalLinksInserted += $insertedCount;
+                        $output->writeln(sprintf('<info>  Linked %d assets to gallery "%s" (ID: %d).</info>', $insertedCount, $galleryName, $galleryId));
+                        $this->logger->info(sprintf('MediaGallery CLI: Linked %d assets to gallery "%s" (ID: %d).', $insertedCount, $galleryName, $galleryId));
+                    } else {
+                        $output->writeln(sprintf('<comment>  No valid assets to link for gallery "%s" (ID: %d) after validation.</comment>', $galleryName, $galleryId));
+                        $this->logger->info(sprintf('MediaGallery CLI: No valid assets to link for gallery "%s" (ID: %d) after validation.', $galleryName, $galleryId));
+                    }
                 } else {
                     $output->writeln(sprintf('<comment>  No new assets to link for gallery "%s" (ID: %d).</comment>', $galleryName, $galleryId));
+                    $this->logger->info(sprintf('MediaGallery CLI: No new assets to link for gallery "%s" (ID: %d).', $galleryName, $galleryId));
                 }
             }
 
             $connection->commit();
             $output->writeln(sprintf('<info>Successfully populated asset links. Total new links inserted: %d</info>', $totalLinksInserted));
-            $this->logger->info(sprintf('GardenLawn MediaGallery asset link population script finished. Total new links inserted: %d', $totalLinksInserted));
+            $this->logger->info(sprintf('MediaGallery CLI: Asset link population script finished. Total new links inserted: %d', $totalLinksInserted));
             return \Magento\Framework\Console\Cli::RETURN_SUCCESS;
 
         } catch (\Exception $e) {
             $connection->rollBack();
             $output->writeln('<error>An error occurred: ' . $e->getMessage() . '</error>');
-            $this->logger->critical('Error in GardenLawn MediaGallery asset link population script: ' . $e->getMessage(), ['exception' => $e]);
+            $this->logger->critical('MediaGallery CLI: Error in asset link population script: ' . $e->getMessage(), ['exception' => $e]);
             return \Magento\Framework\Console\Cli::RETURN_FAILURE;
         }
     }

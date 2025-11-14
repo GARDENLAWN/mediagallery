@@ -3,55 +3,100 @@ namespace GardenLawn\MediaGallery\Cron;
 
 use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
+use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory; // Dodano
 
 class LinkAssets
 {
     protected ResourceConnection $resource;
     protected LoggerInterface $logger;
+    protected GalleryCollectionFactory $galleryCollectionFactory; // Dodano
 
     public function __construct(
         ResourceConnection $resource,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        GalleryCollectionFactory $galleryCollectionFactory // Wstrzykujemy
     ) {
         $this->resource = $resource;
         $this->logger = $logger;
+        $this->galleryCollectionFactory = $galleryCollectionFactory; // Przypisujemy
     }
 
     public function execute(): void
     {
-        $this->logger->info('Starting GardenLawn MediaGallery asset linking cron job.');
+        $this->logger->info('MediaGallery Cron: Starting asset linking cron job.');
         $connection = $this->resource->getConnection();
         $connection->beginTransaction();
         try {
+            $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
             $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
             $gardenLawnMediaGalleryTable = $connection->getTableName('gardenlawn_mediagallery');
-            $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
 
-            // Query to find assets that match a gallery name prefix in their path
-            // and are not yet linked in the gardenlawn_mediagallery_asset_link table.
-            $query = "
-                INSERT INTO {$linkTable} (gallery_id, asset_id, sort_order)
-                SELECT
-                    gmg.id AS gallery_id,
-                    mga.id AS asset_id,
-                    0 AS sort_order -- Default sort order for cron-linked assets
-                FROM
-                    {$mediaGalleryAssetTable} AS mga
-                JOIN
-                    {$gardenLawnMediaGalleryTable} AS gmg ON mga.path LIKE CONCAT(gmg.name, '/%')
-                LEFT JOIN
-                    {$linkTable} AS gmal ON gmal.gallery_id = gmg.id AND gmal.asset_id = mga.id
-                WHERE
-                    gmal.gallery_id IS NULL;
-            ";
+            $galleries = $this->galleryCollectionFactory->create();
+            $totalLinksInserted = 0;
 
-            $rowCount = $connection->query($query)->rowCount();
+            foreach ($galleries as $gallery) {
+                $galleryId = $gallery->getId();
+                $galleryName = $gallery->getName();
+
+                if (empty($galleryName)) {
+                    $this->logger->warning(sprintf('MediaGallery Cron: Skipping gallery ID %d because its name is empty.', $galleryId));
+                    continue;
+                }
+
+                // Find the maximum sort_order for the current gallery
+                $maxSortOrder = (int)$connection->fetchOne(
+                    $connection->select()
+                        ->from($linkTable, new \Zend_Db_Expr('MAX(sort_order)'))
+                        ->where('gallery_id = ?', $galleryId)
+                );
+                $currentSortOrder = $maxSortOrder + 1;
+
+                // Find assets that match the gallery name prefix and are not yet linked
+                $query = $connection->select()
+                    ->from(['mga' => $mediaGalleryAssetTable], ['id', 'path'])
+                    ->where('mga.path LIKE ?', $galleryName . '/%')
+                    ->joinLeft(
+                        ['gmal' => $linkTable],
+                        'gmal.asset_id = mga.id AND gmal.gallery_id = ' . $galleryId,
+                        []
+                    )
+                    ->where('gmal.asset_id IS NULL');
+
+                $assetsToLink = $connection->fetchAll($query);
+
+                if (!empty($assetsToLink)) {
+                    $linksToInsert = [];
+                    foreach ($assetsToLink as $asset) {
+                        if (!is_numeric($asset['id'])) {
+                            $this->logger->warning(sprintf('MediaGallery Cron: Skipping asset with invalid ID "%s" (path: %s) for gallery ID %d.', $asset['id'], $asset['path'], $galleryId));
+                            continue;
+                        }
+                        $linksToInsert[] = [
+                            'gallery_id' => $galleryId,
+                            'asset_id' => (int)$asset['id'],
+                            'sort_order' => $currentSortOrder++,
+                            'enabled' => 1
+                        ];
+                    }
+
+                    if (!empty($linksToInsert)) {
+                        $connection->insertMultiple($linkTable, $linksToInsert);
+                        $insertedCount = count($linksToInsert);
+                        $totalLinksInserted += $insertedCount;
+                        $this->logger->info(sprintf('MediaGallery Cron: Linked %d assets to gallery "%s" (ID: %d).', $insertedCount, $galleryName, $galleryId));
+                    } else {
+                        $this->logger->info(sprintf('MediaGallery Cron: No valid assets to link for gallery "%s" (ID: %d) after validation.', $galleryName, $galleryId));
+                    }
+                } else {
+                    $this->logger->info(sprintf('MediaGallery Cron: No new assets to link for gallery "%s" (ID: %d).', $galleryName, $galleryId));
+                }
+            }
+
             $connection->commit();
-
-            $this->logger->info(sprintf('GardenLawn MediaGallery cron job finished. Inserted %d new asset links.', $rowCount));
+            $this->logger->info(sprintf('MediaGallery Cron: Asset linking cron job finished. Total new links inserted: %d', $totalLinksInserted));
         } catch (\Exception $e) {
             $connection->rollBack();
-            $this->logger->critical('Error in GardenLawn MediaGallery asset linking cron job: ' . $e->getMessage(), ['exception' => $e]);
+            $this->logger->critical('MediaGallery Cron: Error in asset linking cron job: ' . $e->getMessage(), ['exception' => $e]);
         }
     }
 }
