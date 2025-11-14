@@ -41,7 +41,7 @@ class AssetDataProvider extends AbstractDataProvider
             $this->collection->getSelect()->join(
                 ['link' => $this->collection->getTable('gardenlawn_mediagallery_asset_link')],
                 'main_table.id = link.asset_id',
-                ['sort_order']
+                ['sort_order', 'enabled'] // Dodano 'enabled'
             )->where('link.gallery_id = ?', $galleryId);
         } else {
             $this->collection->getSelect()->where('1=0');
@@ -55,6 +55,7 @@ class AssetDataProvider extends AbstractDataProvider
                 'url' => $this->getMediaUrl($item->getPath()),
                 'position' => $item->getSortOrder(),
                 'is_main' => false,
+                'enabled' => (bool)$item->getEnabled(), // Dodano 'enabled'
             ];
         }
 

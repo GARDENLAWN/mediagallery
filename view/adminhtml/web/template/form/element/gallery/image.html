@@ -1,6 +1,10 @@
 <div class="image-item-wrapper">
     <img class="image-item-thumbnail" data-bind="attr: {src: url}" />
     <div class="image-item-actions">
+        <label class="admin__field-label">
+            <input type="checkbox" class="admin__control-checkbox" data-bind="checked: enabled" />
+            <span translate="'Enabled'"></span>
+        </label>
         <button type="button" class="action-delete" data-role="delete-button" data-bind="click: $parent.removeImage.bind($parent, $data)">
             <span translate="'Delete'"></span>
         </button>

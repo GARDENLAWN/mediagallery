@@ -81,7 +81,8 @@ class Save extends Action
                 $imageLinks[] = [
                     'gallery_id' => $galleryId,
                     'asset_id' => $assetId,
-                    'sort_order' => $image['position']
+                    'sort_order' => $image['position'],
+                    'enabled' => (bool)($image['enabled'] ?? true) // Dodano 'enabled'
                 ];
             }
         }
