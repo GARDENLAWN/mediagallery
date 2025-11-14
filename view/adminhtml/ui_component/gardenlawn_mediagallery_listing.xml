@@ -6,7 +6,6 @@
             <item name="deps" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_listing_data_source</item>
         </item>
         <item name="spinner" xsi:type="string">gardenlawn_mediagallery_columns</item>
-        <item name="menu" xsi:type="string">gardenlawn_mediagallery_listing_menu</item>
     </argument>
     <dataSource name="gardenlawn_mediagallery_listing_data_source">
         <argument name="dataProvider" xsi:type="configurableObject">
@@ -19,22 +18,15 @@
                     <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
                     <item name="update_url" xsi:type="url" path="mui/index/render"/>
                     <item name="storageConfig" xsi:type="array">
-                        <item name="provider" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_listing.listing_top.bookmarks</item>
-                        <item name="namespace" xsi:type="string">gardenlawn_mediagallery_listing</item>
+                        <item name="indexField" xsi:type="string">id</item>
                     </item>
                 </item>
             </argument>
-        </argument>
-        <argument name="data" xsi:type="array">
-            <item name="js_config" xsi:type="array">
-                <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
-            </item>
         </argument>
     </dataSource>
     <listingToolbar name="listing_top">
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">
-                <item name="template" xsi:type="string">ui/grid/toolbar</item>
                 <item name="sticky" xsi:type="boolean">true</item>
             </item>
         </argument>
@@ -45,7 +37,7 @@
         <massaction name="listing_massaction">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="selectProvider" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_listing.gardenlawn_mediagallery_columns.ids</item>
+                    <item name="selectProvider" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_columns.ids</item>
                     <item name="indexField" xsi:type="string">id</item>
                 </item>
             </argument>
@@ -66,25 +58,6 @@
         <exportButton name="export_button"/>
     </listingToolbar>
     <columns name="gardenlawn_mediagallery_columns">
-        <argument name="data" xsi:type="array">
-            <item name="config" xsi:type="array">
-                <item name="storageConfig" xsi:type="array">
-                    <item name="provider" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_listing.listing_top.bookmarks</item>
-                    <item name="namespace" xsi:type="string">gardenlawn_mediagallery_columns</item>
-                </item>
-                <item name="editorConfig" xsi:type="array">
-                    <item name="selectProvider" xsi:type="string">gardenlawn_mediagallery_listing.gardenlawn_mediagallery_listing.gardenlawn_mediagallery_columns.ids</item>
-                    <item name="enabled" xsi:type="boolean">true</item>
-                    <item name="indexField" xsi:type="string">id</item>
-                    <item name="client" xsi:type="array">
-                        <item name="target" xsi:type="string">index=save</item>
-                        <item name="params" xsi:type="array">
-                            <item name="namespace" xsi:type="string">gardenlawn_mediagallery_listing</item>
-                        </item>
-                    </item>
-                </item>
-            </item>
-        </argument>
         <selectionsColumn name="ids">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
