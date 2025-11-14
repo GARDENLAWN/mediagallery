@@ -111,6 +111,13 @@
                 <item name="config" xsi:type="array">
                     <item name="autoRender" xsi:type="boolean">true</item>
                     <item name="ns" xsi:type="string">gardenlawn_mediagallery_asset_listing</item>
+                    <item name="externalProvider" xsi:type="string">gardenlawn_mediagallery_asset_listing.gardenlawn_mediagallery_asset_listing_data_source</item>
+                    <item name="imports" xsi:type="array">
+                        <item name="galleryId" xsi:type="string">${ $.provider }:data.id</item>
+                    </item>
+                    <item name="exports" xsi:type="array">
+                        <item name="galleryId" xsi:type="string">${ $.externalProvider }:params.id</item>
+                    </item>
                 </item>
             </argument>
         </insertListing>
