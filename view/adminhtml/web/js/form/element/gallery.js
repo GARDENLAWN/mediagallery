@@ -19,7 +19,11 @@ define([
             // Inicjalizuj obserwowalną tablicę 'images' danymi z 'value'
             // 'value' pochodzi z AssetDataProvider i zawiera już pełne dane obrazów
             // Upewnij się, że 'enabled' jest obserwowalne
-            var initialImages = this.value().map(function(image) {
+            var currentValue = this.value && typeof this.value === 'function' ? this.value() : [];
+            if (!Array.isArray(currentValue)) {
+                currentValue = [];
+            }
+            var initialImages = currentValue.map(function(image) {
                 image.enabled = ko.observable(image.enabled !== undefined ? image.enabled : true);
                 return image;
             });
@@ -33,6 +37,9 @@ define([
 
             // Subskrybuj zmiany w 'images', aby aktualizować 'value' komponentu
             // 'value' jest tym, co zostanie wysłane do serwera podczas zapisu formularza
+            if (!this.value || typeof this.value !== 'function') {
+                this.value = ko.observable([]);
+            }
             this.images.subscribe(function (newImages) {
                 // Przed zapisem, przekonwertuj obserwowalne 'enabled' na zwykłą wartość boolean
                 var dataToSave = newImages.map(function(image) {
