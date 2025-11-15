@@ -86,6 +86,15 @@
                 </item>
             </argument>
         </column>
+        <column name="asset_count">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">number</item>
+                    <item name="label" xsi:type="string" translate="true">Asset Count</item>
+                    <item name="sortable" xsi:type="boolean">false</item>
+                </item>
+            </argument>
+        </column>
         <actionsColumn name="actions" class="GardenLawn\MediaGallery\Ui\Component\Listing\Column\Actions">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">

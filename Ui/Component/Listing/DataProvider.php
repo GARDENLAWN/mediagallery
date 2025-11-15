@@ -10,6 +10,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider as UiDataProvider;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection;
+use Zend_Db_Expr;
 
 class DataProvider extends UiDataProvider
 {
@@ -43,7 +44,26 @@ class DataProvider extends UiDataProvider
         array $data = []
     )
     {
-        $this->collection = $collectionFactory->create();
         parent::__construct($name, $primaryFieldName, $requestFieldName, $reporting, $searchCriteriaBuilder, $request, $filterBuilder, $meta, $data);
+        $this->collection = $collectionFactory->create();
+        $this->addAssetCountToCollection();
+    }
+
+    /**
+     * Add asset count to the collection.
+     *
+     * @return void
+     */
+    protected function addAssetCountToCollection(): void
+    {
+        $this->collection->getSelect()->joinLeft(
+            ['asset_link' => $this->collection->getTable('gardenlawn_mediagallery_asset_link')],
+            'main_table.id = asset_link.mediagallery_id',
+            []
+        )->columns(
+            [
+                'asset_count' => new Zend_Db_Expr('COUNT(asset_link.asset_id)')
+            ]
+        )->group('main_table.id');
     }
 }
