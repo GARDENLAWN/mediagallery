@@ -10,26 +10,26 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Psr\Log\LoggerInterface; // Dodano LoggerInterface
+use Psr\Log\LoggerInterface;
 
 class Save extends Action
 {
     protected GalleryFactory $galleryFactory;
     protected DataPersistorInterface $dataPersistor;
     protected ResourceConnection $resourceConnection;
-    protected LoggerInterface $logger; // Dodano LoggerInterface
+    protected LoggerInterface $logger;
 
     public function __construct(
         Context $context,
         GalleryFactory $galleryFactory,
         DataPersistorInterface $dataPersistor,
         ResourceConnection $resourceConnection,
-        LoggerInterface $logger // Wstrzykujemy LoggerInterface
+        LoggerInterface $logger
     ) {
         $this->galleryFactory = $galleryFactory;
         $this->dataPersistor = $dataPersistor;
         $this->resourceConnection = $resourceConnection;
-        $this->logger = $logger; // Przypisujemy LoggerInterface
+        $this->logger = $logger;
         parent::__construct($context);
     }
 
@@ -93,6 +93,22 @@ class Save extends Action
             $this->logger->info(sprintf('MediaGallery: Deleted existing asset links for gallery ID %d.', $galleryId));
 
             $imageLinks = [];
+            $assetIdsToValidate = [];
+            foreach ($images as $image) {
+                if (isset($image['asset_id'])) {
+                    $assetIdsToValidate[] = (int)$image['asset_id'];
+                }
+            }
+
+            $validAssetIds = [];
+            if (!empty($assetIdsToValidate)) {
+                $selectValidAssets = $connection->select()
+                    ->from($assetTable, ['id'])
+                    ->where('id IN (?)', array_unique($assetIdsToValidate));
+                $validAssetIds = $connection->fetchCol($selectValidAssets);
+                $validAssetIds = array_flip($validAssetIds); // Flip for O(1) lookup
+            }
+
             foreach ($images as $image) {
                 // Walidacja danych obrazu przed zapisem
                 if (!isset($image['file']) || !isset($image['asset_id'])) {
@@ -100,11 +116,8 @@ class Save extends Action
                     continue;
                 }
 
-                // Sprawdzenie, czy asset_id faktycznie istnieje w media_gallery_asset
-                $select = $connection->select()->from($assetTable, 'id')->where('id = ?', $image['asset_id']);
-                $existingAssetId = $connection->fetchOne($select);
-
-                if ($existingAssetId) {
+                // Sprawdzenie, czy asset_id faktycznie istnieje w media_gallery_asset (zoptymalizowane)
+                if (isset($validAssetIds[(int)$image['asset_id']])) {
                     $imageLinks[] = [
                         'gallery_id' => $galleryId,
                         'asset_id' => (int)$image['asset_id'],
@@ -112,7 +125,7 @@ class Save extends Action
                         'enabled' => (bool)($image['enabled'] ?? true)
                     ];
                 } else {
-                    $this->logger->warning(sprintf('MediaGallery: Skipping asset link for gallery ID %d. Asset ID %d (file: %s) does not exist in media_gallery_asset.', $galleryId, $image['asset_id'], $image['file']));
+                    $this->logger->warning(sprintf('MediaGallery: Skipping asset link for gallery ID %d. Asset ID %d (file: %s) does not exist in media_gallery_asset or is invalid.', $galleryId, $image['asset_id'], $image['file']));
                 }
             }
 

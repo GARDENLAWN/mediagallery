@@ -5,14 +5,14 @@ use GardenLawn\MediaGallery\Model\ResourceModel\Asset\CollectionFactory;
 use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
-use Psr\Log\LoggerInterface; // Dodano LoggerInterface
+use Psr\Log\LoggerInterface;
 
 class AssetDataProvider extends AbstractDataProvider
 {
     protected RequestInterface $request;
     protected StoreManagerInterface $storeManager;
     protected $loadedData;
-    protected LoggerInterface $logger; // Dodano LoggerInterface
+    protected LoggerInterface $logger;
 
     public function __construct(
         $name,
@@ -21,14 +21,14 @@ class AssetDataProvider extends AbstractDataProvider
         CollectionFactory $collectionFactory,
         RequestInterface $request,
         StoreManagerInterface $storeManager,
-        LoggerInterface $logger, // Wstrzykujemy LoggerInterface
+        LoggerInterface $logger,
         array $meta = [],
         array $data = []
     ) {
         $this->collection = $collectionFactory->create();
         $this->request = $request;
         $this->storeManager = $storeManager;
-        $this->logger = $logger; // Przypisujemy LoggerInterface
+        $this->logger = $logger;
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
@@ -50,24 +50,36 @@ class AssetDataProvider extends AbstractDataProvider
                 )->where('link.gallery_id = ?', $galleryId);
             } else {
                 // Jeśli nie ma ID galerii (np. nowa galeria), zwróć pustą kolekcję
+                // To zapewnia, że komponent UI nie będzie próbował ładować nieistniejących danych.
                 $this->collection->getSelect()->where('1=0');
             }
 
-            $items = $this->collection->getItems();
-            $this->loadedData = [];
-            foreach ($items as $item) {
-                $this->loadedData[$item->getId()]['images'][] = [
+            $this->collection->load(); // Załaduj kolekcję po zastosowaniu filtrów
+
+            $items = [];
+            foreach ($this->collection->getItems() as $item) {
+                $items[] = [
+                    'id' => $item->getId(), // Uwzględnij ID zasobu
                     'file' => $item->getPath(),
                     'url' => $this->getMediaUrl($item->getPath()),
-                    'position' => $item->getSortOrder(),
-                    'is_main' => false,
+                    'position' => (int)$item->getSortOrder(),
+                    'is_main' => false, // Zakładamy brak logiki "głównego" obrazu tutaj
                     'enabled' => (bool)$item->getEnabled(),
                 ];
             }
+
+            $this->loadedData = [
+                'items' => $items,
+                'totalRecords' => $this->collection->getSize()
+            ];
+
             return $this->loadedData;
         } catch (\Exception $e) {
             $this->logger->critical(sprintf('MediaGallery AssetDataProvider: Error fetching assets for gallery ID %s: %s', $this->request->getParam('id'), $e->getMessage()), ['exception' => $e]);
-            return []; // Zwróć pustą tablicę w przypadku błędu
+            return [
+                'items' => [],
+                'totalRecords' => 0
+            ]; // Zwróć puste dane w przypadku błędu
         }
     }
 

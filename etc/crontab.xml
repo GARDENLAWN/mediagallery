@@ -2,7 +2,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="default">
         <job name="gardenlawn_mediagallery_link_assets" instance="GardenLawn\MediaGallery\Cron\LinkAssets" method="execute">
-            <schedule>* * * * *</schedule> <!-- Runs every day at 2:00 AM -->
+            <schedule>0 2 * * *</schedule> <!-- Runs every day at 2:00 AM -->
         </job>
     </group>
 </config>

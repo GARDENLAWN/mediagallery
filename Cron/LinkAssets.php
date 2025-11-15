@@ -3,22 +3,23 @@ namespace GardenLawn\MediaGallery\Cron;
 
 use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory; // Dodano
+use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
+use Magento\Framework\DB\Expression; // Używamy Magento\Framework\DB\Expression
 
 class LinkAssets
 {
     protected ResourceConnection $resource;
     protected LoggerInterface $logger;
-    protected GalleryCollectionFactory $galleryCollectionFactory; // Dodano
+    protected GalleryCollectionFactory $galleryCollectionFactory;
 
     public function __construct(
         ResourceConnection $resource,
         LoggerInterface $logger,
-        GalleryCollectionFactory $galleryCollectionFactory // Wstrzykujemy
+        GalleryCollectionFactory $galleryCollectionFactory
     ) {
         $this->resource = $resource;
         $this->logger = $logger;
-        $this->galleryCollectionFactory = $galleryCollectionFactory; // Przypisujemy
+        $this->galleryCollectionFactory = $galleryCollectionFactory;
     }
 
     public function execute(): void
@@ -29,10 +30,19 @@ class LinkAssets
         try {
             $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
             $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
-            $gardenLawnMediaGalleryTable = $connection->getTableName('gardenlawn_mediagallery');
+            // $gardenLawnMediaGalleryTable jest nieużywana, więc ją usuwamy.
 
             $galleries = $this->galleryCollectionFactory->create();
             $totalLinksInserted = 0;
+
+            // Optymalizacja: Pobierz wszystkie maksymalne sort_order dla wszystkich galerii w jednym zapytaniu
+            $selectMaxSortOrders = $connection->select()
+                ->from(
+                    $linkTable,
+                    ['gallery_id', new Expression('MAX(sort_order)')]
+                )
+                ->group('gallery_id');
+            $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders); // Zwraca [gallery_id => max_sort_order]
 
             foreach ($galleries as $gallery) {
                 $galleryId = $gallery->getId();
@@ -43,15 +53,11 @@ class LinkAssets
                     continue;
                 }
 
-                // Find the maximum sort_order for the current gallery
-                $maxSortOrder = (int)$connection->fetchOne(
-                    $connection->select()
-                        ->from($linkTable, new \Zend_Db_Expr('MAX(sort_order)'))
-                        ->where('gallery_id = ?', $galleryId)
-                );
+                // Użyj pre-pobranej wartości, domyślnie 0 jeśli brak wpisów dla tej galerii
+                $maxSortOrder = $maxSortOrders[$galleryId] ?? 0;
                 $currentSortOrder = $maxSortOrder + 1;
 
-                // Find assets that match the gallery name prefix and are not yet linked
+                // Znajdź zasoby, które pasują do prefiksu nazwy galerii i nie są jeszcze połączone
                 $query = $connection->select()
                     ->from(['mga' => $mediaGalleryAssetTable], ['id', 'path'])
                     ->where('mga.path LIKE ?', $galleryName . '/%')
