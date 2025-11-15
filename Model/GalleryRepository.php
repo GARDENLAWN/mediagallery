@@ -7,7 +7,6 @@ use Exception;
 use GardenLawn\MediaGallery\Api\Data\GalleryInterface;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery as GalleryResource;
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\NoSuchEntityException;
 
@@ -24,23 +23,15 @@ class GalleryRepository implements GalleryRepositoryInterface
     private GalleryResource $galleryResource;
 
     /**
-     * @var CollectionFactory
-     */
-    private CollectionFactory $collectionFactory;
-
-    /**
      * @param GalleryFactory $galleryFactory
      * @param GalleryResource $galleryResource
-     * @param CollectionFactory $collectionFactory
      */
     public function __construct(
         GalleryFactory $galleryFactory,
-        GalleryResource $galleryResource,
-        CollectionFactory $collectionFactory
+        GalleryResource $galleryResource
     ) {
         $this->galleryFactory = $galleryFactory;
         $this->galleryResource = $galleryResource;
-        $this->collectionFactory = $collectionFactory;
     }
 
     /**

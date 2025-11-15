@@ -7,6 +7,14 @@
             </argument>
         </arguments>
     </type>
+    <!-- Register UI data provider collection handle to fix: Not registered handle gardenlawn_mediagallery_listing_data_source -->
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="gardenlawn_mediagallery_listing_data_source" xsi:type="string">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</item>
+            </argument>
+        </arguments>
+    </type>
     <virtualType name="gardenlawn_mediagallery_listing_data_source" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
         <arguments>
             <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
