@@ -9,13 +9,19 @@ use Magento\Framework\Api\Search\ReportingInterface;
 use Magento\Framework\Api\Search\SearchCriteriaBuilder;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider as UiDataProvider;
+use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Collection; // Add this use statement
 
 class DataProvider extends UiDataProvider
 {
     /**
      * @var RequestInterface
      */
-    protected $request; // Removed type declaration here
+    protected $request;
+
+    /**
+     * @var Collection // Explicitly declare the collection property
+     */
+    protected Collection $collection;
 
     /**
      * @param string $name

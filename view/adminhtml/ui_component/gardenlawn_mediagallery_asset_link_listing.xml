@@ -11,14 +11,14 @@
         <argument name="dataProvider" xsi:type="configurableObject">
             <argument name="class" xsi:type="string">GardenLawn\MediaGallery\Ui\Component\Listing\AssetLink\DataProvider</argument>
             <argument name="name" xsi:type="string">gardenlawn_mediagallery_asset_link_listing_data_source</argument>
-            <argument name="primaryFieldName" xsi:type="string">asset_id</argument>
+            <argument name="primaryFieldName" xsi:type="string">composite_id</argument> <!-- Changed to composite_id -->
             <argument name="requestFieldName" xsi:type="string">id</argument>
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
                     <item name="update_url" xsi:type="url" path="mui/index/render"/>
                     <item name="storageConfig" xsi:type="array">
-                        <item name="indexField" xsi:type="string">asset_id</item>
+                        <item name="indexField" xsi:type="string">composite_id</item> <!-- Changed to composite_id -->
                     </item>
                 </item>
             </argument>

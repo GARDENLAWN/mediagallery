@@ -3,22 +3,56 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Model\ResourceModel\AssetLink;
 
-use GardenLawn\MediaGallery\Model\AssetLink;
 use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink as AssetLinkResource;
-use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult as UiSearchResult;
+use Psr\Log\LoggerInterface as Logger;
+use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
+use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy;
+use Magento\Framework\Event\ManagerInterface as EventManager;
+use Zend_Db_Expr;
 
-class Collection extends AbstractCollection
+class Collection extends UiSearchResult
 {
     /**
-     * @inheritDoc
+     * @var string
      */
-    protected $_idFieldName = 'asset_id'; // Using asset_id as the primary field for the collection
+    protected $_idFieldName = 'composite_id'; // Changed to a virtual field name
 
     /**
-     * @inheritDoc
+     * Collection for UI grid. Provide required constructor args to UiSearchResult
+     * to ensure main table is set and prevent empty table name SQL errors.
+     * @throws LocalizedException
      */
-    protected function _construct(): void
+    public function __construct(
+        EntityFactory $entityFactory,
+        Logger $logger,
+        FetchStrategy $fetchStrategy,
+        EventManager $eventManager
+    ) {
+        // Pass main table, resource model and identifier to parent constructor
+        parent::__construct(
+            $entityFactory,
+            $logger,
+            $fetchStrategy,
+            $eventManager,
+            'gardenlawn_mediagallery_asset_link', // Main table name
+            AssetLinkResource::class, // Resource Model class
+            'asset_id' // This is the primary field for the entity, but not necessarily for the collection's internal indexing
+        );
+    }
+
+    /**
+     * Initialize select object
+     *
+     * @return void
+     */
+    protected function _initSelect(): void
     {
-        $this->_init(AssetLink::class, AssetLinkResource::class);
+        parent::_initSelect();
+        // Add a composite ID field for unique indexing in the collection
+        $this->getSelect()->columns([
+            'composite_id' => new Zend_Db_Expr("CONCAT(main_table.gallery_id, '_', main_table.asset_id)")
+        ]);
     }
 }

@@ -12,13 +12,14 @@
         </constraint>
     </table>
     <table name="gardenlawn_mediagallery_asset_link" resource="default" engine="innodb" comment="Link between Media Gallery and Assets">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
+                comment="ID"/>
         <column xsi:type="int" name="gallery_id" unsigned="true" nullable="false" comment="Media Gallery ID"/>
         <column xsi:type="int" name="asset_id" unsigned="true" nullable="false" comment="Media Gallery Asset ID"/>
         <column xsi:type="int" name="sort_order" unsigned="true" nullable="false" default="0" comment="Sort Order"/>
         <column xsi:type="boolean" name="enabled" nullable="false" default="1" comment="Enabled"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="gallery_id"/>
-            <column name="asset_id"/>
+            <column name="id"/>
         </constraint>
         <constraint xsi:type="foreign"
                     referenceId="GARDENLAWN_MEDIAGALLERY_ASSET_LINK_GALLERY"
