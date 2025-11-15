@@ -1,6 +1,7 @@
 <?php
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
@@ -67,7 +68,7 @@ class Upload extends Action
             $result['url'] = $mediaUrl . 'wysiwyg/' . $result['file'];
             $result['asset_id'] = $asset->getId();
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
             $this->logger->error('Media Gallery Upload Error: ' . $e->getMessage());
         }

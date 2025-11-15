@@ -86,6 +86,9 @@ class Save extends Action
         return $resultRedirect->setPath('*/*/');
     }
 
+    /**
+     * @throws LocalizedException
+     */
     protected function saveAssetLinks(int $galleryId, array $assets): void
     {
         $connection = $this->resourceConnection->getConnection();

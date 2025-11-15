@@ -5,7 +5,7 @@ use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
 class Gallery extends AbstractDb
 {
-    protected function _construct()
+    protected function _construct(): void
     {
         $this->_init('gardenlawn_mediagallery', 'id');
     }

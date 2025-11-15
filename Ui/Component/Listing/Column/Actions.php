@@ -8,8 +8,8 @@ use Magento\Ui\Component\Listing\Columns\Column;
 
 class Actions extends Column
 {
-    const URL_PATH_EDIT = 'gardenlawn_mediagallery/index/edit';
-    const URL_PATH_DELETE = 'gardenlawn_mediagallery/index/delete';
+    const string URL_PATH_EDIT = 'gardenlawn_mediagallery/index/edit';
+    const string URL_PATH_DELETE = 'gardenlawn_mediagallery/index/delete';
 
     protected UrlInterface $urlBuilder;
 

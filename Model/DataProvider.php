@@ -15,7 +15,7 @@ class DataProvider extends AbstractDataProvider
     /**
      * @var array
      */
-    protected $loadedData;
+    protected array $loadedData;
 
     public function __construct(
         $name,

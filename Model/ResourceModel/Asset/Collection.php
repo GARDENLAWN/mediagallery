@@ -1,7 +1,9 @@
 <?php
 namespace GardenLawn\MediaGallery\Model\ResourceModel\Asset;
 
+use GardenLawn\MediaGallery\Model\ResourceModel\Asset;
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\MediaGalleryApi\Api\Data\AssetInterface;
 
 class Collection extends AbstractCollection
 {
@@ -12,11 +14,11 @@ class Collection extends AbstractCollection
      *
      * @return void
      */
-    protected function _construct()
+    protected function _construct(): void
     {
         $this->_init(
-            \Magento\MediaGalleryApi\Api\Data\AssetInterface::class,
-            \GardenLawn\MediaGallery\Model\ResourceModel\Asset::class
+            AssetInterface::class,
+            Asset::class
         );
     }
 }

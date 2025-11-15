@@ -10,7 +10,7 @@ class Asset extends AbstractDb
      *
      * @return void
      */
-    protected function _construct()
+    protected function _construct(): void
     {
         $this->_init('media_gallery_asset', 'id');
     }
