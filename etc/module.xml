@@ -5,7 +5,7 @@
         <sequence>
             <module name="Magento_Backend"/>
             <module name="Magento_Ui"/>
-            <module name="Magento_MediaGalleryApi"/>
+            <module name="Magento_MediaGallery"/>
             <module name="Magento_AwsS3"/>
             <module name="GardenLawn_Core"/>
         </sequence>
