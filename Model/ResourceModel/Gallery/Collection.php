@@ -10,6 +10,7 @@ use Psr\Log\LoggerInterface as Logger;
 use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
 use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Zend_Db_Expr;
 
 /**
  * Grid collection that is compatible with Magento UI DataProvider
@@ -38,5 +39,24 @@ class Collection extends UiSearchResult
             Gallery::class,
             'id'
         );
+    }
+
+    /**
+     * Initialize select object
+     *
+     * @return void
+     */
+    protected function _initSelect(): void
+    {
+        parent::_initSelect();
+        $this->getSelect()->joinLeft(
+            ['asset_link' => $this->getTable('gardenlawn_mediagallery_asset_link')],
+            'main_table.id = asset_link.gallery_id',
+            []
+        )->columns(
+            [
+                'asset_count' => new Zend_Db_Expr('COUNT(asset_link.asset_id)')
+            ]
+        )->group('main_table.id');
     }
 }
