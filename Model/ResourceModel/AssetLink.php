@@ -14,6 +14,6 @@ class AssetLink extends AbstractDb
      */
     protected function _construct(): void
     {
-        $this->_init('gardenlawn_mediagallery_asset_link', 'gallery_id'); // 'gallery_id' is part of the composite primary key
+        $this->_init('gardenlawn_mediagallery_asset_link', 'id');
     }
 }

@@ -58,5 +58,8 @@ class Collection extends UiSearchResult
                 'asset_count' => new Zend_Db_Expr('COUNT(asset_link.asset_id)')
             ]
         )->group('main_table.id');
+
+        // Map 'id' to 'main_table.id' to resolve ambiguity in WHERE clauses
+        $this->addFilterToMap('id', 'main_table.id');
     }
 }
