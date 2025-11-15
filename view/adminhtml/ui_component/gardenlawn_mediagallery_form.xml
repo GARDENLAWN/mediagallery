@@ -65,7 +65,7 @@
             </formElements>
         </field>
     </fieldset>
-    <fieldset name="assets">
+   <!-- <fieldset name="assets">
         <settings>
             <label translate="true">Assets</label>
             <collapsible>true</collapsible>
@@ -85,5 +85,5 @@
                 </exports>
             </settings>
         </insertListing>
-    </fieldset>
+    </fieldset>-->
 </form>
