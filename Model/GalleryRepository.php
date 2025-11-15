@@ -26,7 +26,7 @@ class GalleryRepository implements GalleryRepositoryInterface
     /**
      * @var CollectionFactory
      */
-    private $collectionFactory;
+    private CollectionFactory $collectionFactory;
 
     /**
      * @param GalleryFactory $galleryFactory

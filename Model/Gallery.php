@@ -29,7 +29,7 @@ class Gallery extends AbstractModel implements GalleryInterface
     /**
      * @inheritDoc
      */
-    public function setId(int $id): static
+    public function setId($id): GalleryInterface
     {
         return $this->setData(self::ID, $id);
     }
