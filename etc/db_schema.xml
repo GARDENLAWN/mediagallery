@@ -21,18 +21,22 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>
         </constraint>
+        <constraint xsi:type="unique" referenceId="GARDENLAWN_MEDIAGALLERY_ASSET_LINK_PK">
+            <column name="gallery_id"/>
+            <column name="asset_id"/>
+        </constraint>
         <constraint xsi:type="foreign"
-                    referenceId="GARDENLAWN_MEDIAGALLERY_ASSET_LINK_GALLERY"
-                    table="gardenlawn_mediagallery_asset_link"
-                    column="gallery_id"
-                    referenceTable="gardenlawn_mediagallery"
-                    referenceColumn="id"
-                    onDelete="CASCADE"/>
-        <constraint xsi:type="foreign"
-                    referenceId="GARDENLAWN_MEDIAGALLERY_ASSET_LINK_ASSET"
+                    referenceId="GARDENLAWN_MDAGLR_ASSET_LNK_ASSET_ID_MDA_GLR_ASSET_ID"
                     table="gardenlawn_mediagallery_asset_link"
                     column="asset_id"
                     referenceTable="media_gallery_asset"
+                    referenceColumn="id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign"
+                    referenceId="GARDENLAWN_MDAGLR_ASSET_LNK_GLR_ID_GARDENLAWN_MDAGLR_ID"
+                    table="gardenlawn_mediagallery_asset_link"
+                    column="gallery_id"
+                    referenceTable="gardenlawn_mediagallery"
                     referenceColumn="id"
                     onDelete="CASCADE"/>
     </table>
