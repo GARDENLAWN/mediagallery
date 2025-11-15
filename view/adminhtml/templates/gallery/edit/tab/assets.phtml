@@ -1,0 +1,11 @@
+<?php
+/** @var \GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\Tab\Assets $block */
+?>
+<div class="fieldset-wrapper-content">
+    <input type="hidden" name="links[assets]" id="linked-assets-input" value='<?= $block->getLinkedAssetsJson() ?>'>
+    <div id="media-gallery-container" data-role="media-gallery-grid-container">
+        <div data-role="media-gallery-grid" data-component="media_gallery_listing">
+            <!-- The media gallery grid will be rendered here by Magento's UI component system -->
+        </div>
+    </div>
+</div>

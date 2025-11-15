@@ -6,14 +6,6 @@ use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 
 class DataProvider extends AbstractDataProvider
 {
-    /**
-     * @param string $name
-     * @param string $primaryFieldName
-     * @param string $requestFieldName
-     * @param CollectionFactory $collectionFactory
-     * @param array $meta
-     * @param array $data
-     */
     public function __construct(
         $name,
         $primaryFieldName,

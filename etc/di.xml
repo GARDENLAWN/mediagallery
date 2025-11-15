@@ -7,16 +7,4 @@
             </argument>
         </arguments>
     </type>
-
-    <virtualType name="GardenLawnMediaGalleryGridDataProvider" type="GardenLawn\MediaGallery\Ui\Component\Listing\DataProvider">
-        <arguments>
-            <argument name="collection" xsi:type="object" shared="false">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
-        </arguments>
-    </virtualType>
-
-    <type name="GardenLawn\MediaGallery\Ui\Component\Listing\DataProvider">
-        <arguments>
-            <argument name="collection" xsi:type="object" shared="false">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection</argument>
-        </arguments>
-    </type>
 </config>

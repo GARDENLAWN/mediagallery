@@ -1,9 +1,20 @@
 <?xml version="1.0"?>
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
-    <update handle="styles"/>
     <body>
-        <referenceContainer name="content">
-            <uiComponent name="gardenlawn_mediagallery_form"/>
-        </referenceContainer>
+        <referenceBlock name="gallery_assets">
+            <arguments>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="media-gallery" xsi:type="array">
+                            <item name="component" xsi:type="string">Magento_MediaGalleryUi/js/grid/provider</item>
+                            <item name="ns" xsi:type="string">media_gallery_listing</item>
+                            <item name="storageConfig" xsi:type="array">
+                                <item name="indexField" xsi:type="string">id</item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
     </body>
 </page>
