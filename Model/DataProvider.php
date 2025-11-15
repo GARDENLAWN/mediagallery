@@ -40,7 +40,7 @@ class DataProvider extends AbstractDataProvider
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
-    public function getData(): array
+    public function getData(): array // Dodano typ zwracany
     {
         if (isset($this->loadedData)) {
             return $this->loadedData;
@@ -111,7 +111,7 @@ class DataProvider extends AbstractDataProvider
                 'file' => $asset['path'],
                 'url' => $this->getMediaUrl($asset['path']),
                 'position' => (int)$asset['sort_order'],
-                'is_main' => false, // Domyślnie false, jeśli nie ma logiki na "główny" obraz
+                'is_main' => false, // UWAGA: Domyślnie false. Jeśli potrzebna jest logika "głównego" obrazu, należy ją tutaj zaimplementować.
                 'asset_id' => (int)$asset['id'],
                 'enabled' => (bool)$asset['enabled'],
             ];

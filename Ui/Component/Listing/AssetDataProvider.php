@@ -6,6 +6,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Psr\Log\LoggerInterface;
+use Magento\Framework\Exception\NoSuchEntityException; // Dodano
 
 class AssetDataProvider extends AbstractDataProvider
 {
@@ -63,7 +64,7 @@ class AssetDataProvider extends AbstractDataProvider
                     'file' => $item->getPath(),
                     'url' => $this->getMediaUrl($item->getPath()),
                     'position' => (int)$item->getSortOrder(),
-                    'is_main' => false, // Zakładamy brak logiki "głównego" obrazu tutaj
+                    'is_main' => false, // UWAGA: Domyślnie false. Jeśli potrzebna jest logika "głównego" obrazu, należy ją tutaj zaimplementować.
                     'enabled' => (bool)$item->getEnabled(),
                 ];
             }
@@ -83,6 +84,13 @@ class AssetDataProvider extends AbstractDataProvider
         }
     }
 
+    /**
+     * Get media URL for a given path.
+     *
+     * @param string $path
+     * @return string
+     * @throws NoSuchEntityException
+     */
     private function getMediaUrl($path): string
     {
         return $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . $path;

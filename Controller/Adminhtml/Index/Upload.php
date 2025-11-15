@@ -7,9 +7,11 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\MediaStorage\Model\File\UploaderFactory;
 use GardenLawn\MediaGallery\Model\AssetFactory;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Filesystem; // Dodano Filesystem
-use Magento\Framework\Filesystem\DirectoryList; // Dodano DirectoryList
-use Magento\Framework\Filesystem\Io\File; // Dodano File IO
+// Usunięto: use Magento\Framework\Filesystem;
+// Usunięto: use Magento\Framework\Filesystem\DirectoryList;
+// Usunięto: use Magento\Framework\Filesystem\Io\File;
+use Magento\Framework\Controller\Result\Json;
+use Magento\MediaStorage\Model\File\Uploader; // Dodano dla type hintingu
 
 class Upload extends Action
 {
@@ -17,58 +19,54 @@ class Upload extends Action
     protected UploaderFactory $uploaderFactory;
     protected AssetFactory $assetFactory;
     protected LoggerInterface $logger;
-    protected Filesystem $filesystem; // Dodano Filesystem
-    protected File $fileIo; // Dodano File IO
+    // Usunięto: protected Filesystem $filesystem;
+    // Usunięto: protected File $fileIo;
 
     public function __construct(
         Context $context,
         JsonFactory $resultJsonFactory,
         UploaderFactory $uploaderFactory,
         AssetFactory $assetFactory,
-        LoggerInterface $logger,
-        Filesystem $filesystem, // Wstrzykujemy Filesystem
-        File $fileIo // Wstrzykujemy File IO
+        LoggerInterface $logger
+        // Usunięto: Filesystem $filesystem,
+        // Usunięto: File $fileIo
     ) {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
         $this->uploaderFactory = $uploaderFactory;
         $this->assetFactory = $assetFactory;
         $this->logger = $logger;
-        $this->filesystem = $filesystem; // Przypisujemy Filesystem
-        $this->fileIo = $fileIo; // Przypisujemy File IO
+        // Usunięto: $this->filesystem = $filesystem;
+        // Usunięto: $this->fileIo = $fileIo;
     }
 
-    public function execute()
+    public function execute(): Json
     {
         $result = [];
         try {
+            /** @var Uploader $uploader */ // Type hinting
             $uploader = $this->uploaderFactory->create(['fileId' => 'image']);
             $uploader->setAllowedExtensions(['jpg', 'jpeg', 'gif', 'png']);
             $uploader->setAllowRenameFiles(true);
             $uploader->setFilesDispersion(true);
             $uploader->setMaxFileSize(5 * 1024 * 1024); // Limit do 5MB
-            $uploader->setAllowMimeTypes(true); // Włącz walidację MIME type
+            $uploader->setAllowMimeTypes(true);
+            $uploader->setAllowedMimeTypes(['image/jpeg', 'image/png', 'image/gif']);
 
+            // Ścieżka docelowa w magazynie mediów (np. w bucketcie S3 lub lokalnym katalogu mediów)
+            $targetPath = 'gardenlawn/mediagallery/' . date('Y/m');
+
+            // saveFileToTmpDir() zapisuje plik do tymczasowego katalogu lokalnego.
             $tmpResult = $uploader->saveFileToTmpDir();
 
-            // Utwórz docelowy katalog w mediach
-            $mediaDirectory = $this->filesystem->getDirectoryWrite(DirectoryList::MEDIA);
-            $targetPath = 'gardenlawn/mediagallery/' . date('Y/m');
-            $mediaDirectory->create($targetPath);
-
-            // Pełna ścieżka do pliku tymczasowego
-            $tmpFilePath = $mediaDirectory->getAbsolutePath($uploader->getTmpDir() . $tmpResult['file']);
-            // Pełna ścieżka do docelowego pliku
-            $finalFilePath = $mediaDirectory->getAbsolutePath($targetPath . $tmpResult['file']);
-            // Ścieżka względna do katalogu mediów
-            $assetPath = $targetPath . $tmpResult['file'];
-
-            // Przenieś plik z katalogu tymczasowego do docelowego
-            $this->fileIo->mv($tmpFilePath, $finalFilePath);
+            // moveFileFromTmp() przenosi plik z katalogu tymczasowego do docelowego magazynu.
+            // Magento's Uploader jest zaprojektowany do obsługi różnych adapterów magazynowania (lokalny, S3 itp.)
+            // w zależności od konfiguracji. Zwraca ścieżkę względną do bazowego katalogu mediów.
+            $assetPath = $uploader->moveFileFromTmp($tmpResult['file'], $targetPath);
 
             $asset = $this->assetFactory->create();
             $asset->setPath($assetPath);
-            $asset->setTitle($tmpResult['name']);
+            $asset->setTitle($tmpResult['name']); // Tytuł to oryginalna nazwa pliku
             $asset->save();
 
             $result['cookie'] = [

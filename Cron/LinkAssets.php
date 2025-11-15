@@ -4,7 +4,7 @@ namespace GardenLawn\MediaGallery\Cron;
 use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
-use Magento\Framework\DB\Expression; // Używamy Magento\Framework\DB\Expression
+use Magento\Framework\DB\Expression;
 
 class LinkAssets
 {
@@ -30,9 +30,11 @@ class LinkAssets
         try {
             $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
             $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
-            // $gardenLawnMediaGalleryTable jest nieużywana, więc ją usuwamy.
 
             $galleries = $this->galleryCollectionFactory->create();
+            $totalGalleries = $galleries->getSize(); // Liczba galerii
+            $this->logger->info(sprintf('MediaGallery Cron: Found %d galleries to process.', $totalGalleries));
+
             $totalLinksInserted = 0;
 
             // Optymalizacja: Pobierz wszystkie maksymalne sort_order dla wszystkich galerii w jednym zapytaniu
@@ -48,6 +50,9 @@ class LinkAssets
                 $galleryId = $gallery->getId();
                 $galleryName = $gallery->getName();
 
+                // UWAGA: Założenie, że nazwa galerii jest bezpieczna do użycia jako prefiks ścieżki pliku.
+                // Rozważ dodanie dedykowanego pola "path_identifier" w tabeli galerii,
+                // jeśli nazwy galerii mogą zawierać znaki specjalne lub nie są unikalne jako prefiksy.
                 if (empty($galleryName)) {
                     $this->logger->warning(sprintf('MediaGallery Cron: Skipping gallery ID %d because its name is empty.', $galleryId));
                     continue;

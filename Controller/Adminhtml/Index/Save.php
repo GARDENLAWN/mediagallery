@@ -81,6 +81,18 @@ class Save extends Action
         return $resultRedirect->setPath('*/*/');
     }
 
+    /**
+     * Saves the associated images for a given gallery.
+     *
+     * This method first deletes all existing links for the gallery and then inserts new ones
+     * based on the provided image data. It includes validation to ensure that asset IDs
+     * actually exist in the `media_gallery_asset` table before linking.
+     *
+     * @param int $galleryId The ID of the gallery.
+     * @param array $images An array of image data, where each image is an array
+     *                      containing 'asset_id', 'file', 'position', and 'enabled'.
+     * @throws \Exception If an error occurs during database operations.
+     */
     protected function saveImages(int $galleryId, array $images): void
     {
         $connection = $this->resourceConnection->getConnection();
