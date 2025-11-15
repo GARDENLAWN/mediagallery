@@ -23,7 +23,8 @@ class Gallery extends AbstractModel implements GalleryInterface
      */
     public function getId(): ?int
     {
-        return $this->getData(self::ID);
+        $id = $this->getData(self::ID);
+        return $id !== null ? (int)$id : null;
     }
 
     /**
