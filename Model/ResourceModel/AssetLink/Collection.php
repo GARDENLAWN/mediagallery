@@ -10,14 +10,13 @@ use Psr\Log\LoggerInterface as Logger;
 use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
 use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy;
 use Magento\Framework\Event\ManagerInterface as EventManager;
-use Zend_Db_Expr;
 
 class Collection extends UiSearchResult
 {
     /**
      * @var string
      */
-    protected $_idFieldName = 'composite_id'; // Changed to a virtual field name
+    protected $_idFieldName = 'id';
 
     /**
      * Collection for UI grid. Provide required constructor args to UiSearchResult
@@ -38,21 +37,7 @@ class Collection extends UiSearchResult
             $eventManager,
             'gardenlawn_mediagallery_asset_link', // Main table name
             AssetLinkResource::class, // Resource Model class
-            'asset_id' // This is the primary field for the entity, but not necessarily for the collection's internal indexing
+            'id' // This is the primary field for the entity, but not necessarily for the collection's internal indexing
         );
-    }
-
-    /**
-     * Initialize select object
-     *
-     * @return void
-     */
-    protected function _initSelect(): void
-    {
-        parent::_initSelect();
-        // Add a composite ID field for unique indexing in the collection
-        $this->getSelect()->columns([
-            'composite_id' => new Zend_Db_Expr("CONCAT(main_table.gallery_id, '_', main_table.asset_id)")
-        ]);
     }
 }
