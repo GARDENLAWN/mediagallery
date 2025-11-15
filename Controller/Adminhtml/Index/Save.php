@@ -9,6 +9,7 @@ use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Psr\Log\LoggerInterface;
 
 class Save extends Action
 {
@@ -23,17 +24,25 @@ class Save extends Action
     private GalleryFactory $galleryFactory;
 
     /**
+     * @var LoggerInterface
+     */
+    private LoggerInterface $logger;
+
+    /**
      * @param Context $context
      * @param GalleryRepositoryInterface $galleryRepository
      * @param GalleryFactory $galleryFactory
+     * @param LoggerInterface $logger
      */
     public function __construct(
         Context $context,
         GalleryRepositoryInterface $galleryRepository,
-        GalleryFactory $galleryFactory
+        GalleryFactory $galleryFactory,
+        LoggerInterface $logger
     ) {
         $this->galleryRepository = $galleryRepository;
         $this->galleryFactory = $galleryFactory;
+        $this->logger = $logger;
         parent::__construct($context);
     }
 
@@ -59,12 +68,14 @@ class Save extends Action
             try {
                 $this->galleryRepository->save($model);
                 $this->messageManager->addSuccessMessage(__('You saved the gallery.'));
+                $this->logger->info('Gallery saved', ['gallery_id' => $model->getId()]);
                 if ($this->getRequest()->getParam('back')) {
                     return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId(), '_current' => true]);
                 }
                 return $resultRedirect->setPath('*/*/');
             } catch (\Exception $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
+                $this->logger->error('Error saving gallery', ['exception' => $e]);
                 return $resultRedirect->setPath('*/*/edit', ['id' => $this->getRequest()->getParam('id')]);
             }
         }
