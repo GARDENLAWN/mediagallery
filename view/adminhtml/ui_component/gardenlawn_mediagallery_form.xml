@@ -112,6 +112,9 @@
                     <item name="imports" xsi:type="array">
                         <item name="current_id" xsi:type="string">${ $.provider }:data.id</item>
                     </item>
+                    <item name="exports" xsi:type="array">
+                        <item name="current_id" xsi:type="string">${ $.externalProvider }:params.current_id</item>
+                    </item>
                 </item>
             </argument>
         </insertListing>

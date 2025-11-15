@@ -1,78 +1,66 @@
 <?php
 namespace GardenLawn\MediaGallery\Ui\Component\Listing;
 
-use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider as UiDataProvider;
-use Magento\MediaGalleryApi\Api\SearchAssetsInterface;
-use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Ui\DataProvider\AbstractDataProvider;
 use Magento\Framework\App\RequestInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
+use Magento\MediaGalleryApi\Api\SearchAssetsInterface;
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use GardenLawn\MediaGallery\Model\ResourceModel\Asset\CollectionFactory;
 
-class AssetDataProvider extends UiDataProvider
+class AssetDataProvider extends AbstractDataProvider
 {
-    protected $searchAssets;
-    protected $searchCriteriaBuilder;
-    protected $request;
-    protected $galleryFactory;
+    protected RequestInterface $request;
+    protected GalleryFactory $galleryFactory;
+    protected SearchAssetsInterface $searchAssets;
+    protected SearchCriteriaBuilder $searchCriteriaBuilder;
 
     public function __construct(
         $name,
         $primaryFieldName,
         $requestFieldName,
-        SearchAssetsInterface $searchAssets,
-        SearchCriteriaBuilder $searchCriteriaBuilder,
+        CollectionFactory $collectionFactory,
         RequestInterface $request,
         GalleryFactory $galleryFactory,
+        SearchAssetsInterface $searchAssets,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
         array $meta = [],
         array $data = []
     ) {
-        $this->searchAssets = $searchAssets;
-        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
+        $this->collection = $collectionFactory->create();
         $this->request = $request;
         $this->galleryFactory = $galleryFactory;
-        // The data provider requires a collection instance, but we will be using the service contract to fetch data.
-        // We can create a dummy collection here to satisfy the parent constructor.
-        $this->collection = new \Magento\Framework\Data\Collection\EntityFactory($this->request);
-        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
+        $this->searchAssets = $searchAssets;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
     }
 
-    public function getData()
+    public function getData(): array
     {
-        $galleryId = $this->request->getParam('current_id');
-        if (!$galleryId) {
-            return [
-                'totalRecords' => 0,
-                'items' => [],
-            ];
+        // This provider is used for the asset selection grid, which should show all available assets,
+        // not just those in the current gallery's folder.
+        // The filtering by folder was incorrect. The grid should allow searching all assets.
+        // If you want to pre-filter by the gallery folder, that would be a different requirement.
+
+        // We will add all request filters to the collection.
+        foreach ($this->getAdditionalSearchCriteria() as $field => $value) {
+            $this->getCollection()->addFieldToFilter($field, $value);
         }
 
-        $gallery = $this->galleryFactory->create()->load($galleryId);
-        if (!$gallery->getId()) {
-            return [
-                'totalRecords' => 0,
-                'items' => [],
-            ];
+        return $this->getCollection()->toArray();
+    }
+
+    private function getAdditionalSearchCriteria(): array
+    {
+        $filters = $this->request->getParam('filters', []);
+        $searchCriteria = [];
+        if (is_array($filters)) {
+            foreach ($filters as $field => $value) {
+                if (is_string($value) && !empty(trim($value))) {
+                    $searchCriteria[$field] = ['like' => '%' . trim($value) . '%'];
+                }
+            }
         }
-
-        $folderPath = 'wysiwyg/' . $gallery->getName();
-
-        $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter('folder', $folderPath)
-            ->create();
-
-        $assets = $this->searchAssets->execute($searchCriteria);
-
-        $items = [];
-        foreach ($assets->getItems() as $asset) {
-            $items[] = [
-                'id' => $asset->getId(),
-                'path' => $asset->getPath(),
-                'title' => $asset->getTitle(),
-            ];
-        }
-
-        return [
-            'totalRecords' => $assets->getTotalCount(),
-            'items' => $items,
-        ];
+        return $searchCriteria;
     }
 }

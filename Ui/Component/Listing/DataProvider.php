@@ -1,11 +1,19 @@
 <?php
 namespace GardenLawn\MediaGallery\Ui\Component\Listing;
 
-use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider as UiDataProvider;
+use Magento\Ui\DataProvider\AbstractDataProvider;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 
-class DataProvider extends UiDataProvider
+class DataProvider extends AbstractDataProvider
 {
+    /**
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
+     * @param CollectionFactory $collectionFactory
+     * @param array $meta
+     * @param array $data
+     */
     public function __construct(
         $name,
         $primaryFieldName,
