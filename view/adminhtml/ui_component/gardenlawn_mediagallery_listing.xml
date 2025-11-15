@@ -45,7 +45,7 @@
         <column name="id">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="filter" xsi:type="string">textRange</item>
+                    <item name="filter" xsi:type="string">number</item>
                     <item name="sorting" xsi:type="string">asc</item>
                     <item name="label" xsi:type="string" translate="true">ID</item>
                 </item>
@@ -68,7 +68,7 @@
         <column name="sortorder">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="filter" xsi:type="string">textRange</item>
+                    <item name="filter" xsi:type="string">number</item>
                     <item name="editor" xsi:type="string">text</item>
                     <item name="label" xsi:type="string" translate="true">Sort Order</item>
                 </item>
