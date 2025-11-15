@@ -3,46 +3,80 @@ namespace GardenLawn\MediaGallery\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Magento\AwsS3\Model\Storage\S3 as S3Storage;
+use Magento\AwsS3\Driver\AwsS3 as AwsS3Driver;
+use Magento\Framework\Exception\FileSystemException;
+use Psr\Log\LoggerInterface;
 
 class S3Helper extends AbstractHelper
 {
-    protected $s3Storage;
+    /**
+     * @var AwsS3Driver
+     */
+    protected AwsS3Driver $awsS3Driver;
+
+    /**
+     * @var LoggerInterface
+     */
+    protected LoggerInterface $logger;
 
     public function __construct(
         Context $context,
-        S3Storage $s3Storage
+        AwsS3Driver $awsS3Driver
     ) {
-        $this->s3Storage = $s3Storage;
+        $this->awsS3Driver = $awsS3Driver;
+        $this->logger = $context->getLogger();
         parent::__construct($context);
     }
 
-    public function createFolder(string $folderName): bool
+    /**
+     * Creates a directory in the S3 bucket.
+     *
+     * @param string $folderPath The path of the folder to create (e.g., 'wysiwyg/my-folder').
+     * @return bool True on success, false on failure.
+     */
+    public function createFolder(string $folderPath): bool
     {
-        // In S3, folders are created implicitly by creating an object with a trailing slash.
-        $path = rtrim($folderName, '/') . '/';
-        return $this->s3Storage->getStorage()->getAdapter()->write($path, '');
-    }
-
-    public function renameFolder(string $oldName, string $newName): bool
-    {
-        // S3 doesn't have a direct rename operation. We need to copy and delete.
-        $oldPath = rtrim($oldName, '/') . '/';
-        $newPath = rtrim($newName, '/') . '/';
-
-        $objects = $this->s3Storage->getStorage()->getAdapter()->listObjects(['prefix' => $oldPath]);
-
-        foreach ($objects as $object) {
-            $newKey = str_replace($oldPath, $newPath, $object['Key']);
-            $this->s3Storage->getStorage()->getAdapter()->copy($object['Key'], $newKey);
-            $this->s3Storage->getStorage()->getAdapter()->delete($object['Key']);
+        try {
+            if (!$this->awsS3Driver->isDirectory($folderPath)) {
+                return $this->awsS3Driver->createDirectory($folderPath);
+            }
+            return true; // Directory already exists
+        } catch (FileSystemException $e) {
+            $this->logger->error('S3 Helper Error - Could not create folder: ' . $folderPath, ['exception' => $e]);
+            return false;
         }
-        return true;
     }
 
-    public function deleteFolder(string $folderName): bool
+    /**
+     * Renames a directory in the S3 bucket.
+     *
+     * @param string $oldPath The original path of the folder.
+     * @param string $newPath The new path for the folder.
+     * @return bool True on success, false on failure.
+     */
+    public function renameFolder(string $oldPath, string $newPath): bool
     {
-        $path = rtrim($folderName, '/') . '/';
-        return $this->s3Storage->getStorage()->getAdapter()->deleteDirectory($path);
+        try {
+            return $this->awsS3Driver->rename($oldPath, $newPath);
+        } catch (FileSystemException $e) {
+            $this->logger->error('S3 Helper Error - Could not rename folder from ' . $oldPath . ' to ' . $newPath, ['exception' => $e]);
+            return false;
+        }
+    }
+
+    /**
+     * Deletes a directory and its contents from the S3 bucket.
+     *
+     * @param string $folderPath The path of the folder to delete.
+     * @return bool True on success, false on failure.
+     */
+    public function deleteFolder(string $folderPath): bool
+    {
+        try {
+            return $this->awsS3Driver->deleteDirectory($folderPath);
+        } catch (FileSystemException $e) {
+            $this->logger->error('S3 Helper Error - Could not delete folder: ' . $folderPath, ['exception' => $e]);
+            return false;
+        }
     }
 }
