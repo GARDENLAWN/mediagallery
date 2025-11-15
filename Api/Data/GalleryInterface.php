@@ -8,17 +8,17 @@ interface GalleryInterface
     /**
      * Constants for keys of data array.
      */
-    public const ID = 'id';
-    public const NAME = 'name';
-    public const SORTORDER = 'sortorder';
-    public const ENABLED = 'enabled';
+    public const string ID = 'id';
+    public const string NAME = 'name';
+    public const string SORTORDER = 'sortorder';
+    public const string ENABLED = 'enabled';
 
     /**
      * Get ID
      *
      * @return int|null
      */
-    public function getId();
+    public function getId(): ?int;
 
     /**
      * Set ID
@@ -26,7 +26,7 @@ interface GalleryInterface
      * @param int $id
      * @return $this
      */
-    public function setId($id);
+    public function setId(int $id): static;
 
     /**
      * Get name

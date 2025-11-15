@@ -13,13 +13,13 @@ class Actions extends Column
     /**
      * Url path
      */
-    private const URL_PATH_EDIT = 'gardenlawn_mediagallery/index/edit';
-    private const URL_PATH_DELETE = 'gardenlawn_mediagallery/index/delete';
+    private const string URL_PATH_EDIT = 'gardenlawn_mediagallery/index/edit';
+    private const string URL_PATH_DELETE = 'gardenlawn_mediagallery/index/delete';
 
     /**
      * @var UrlInterface
      */
-    private $urlBuilder;
+    private UrlInterface $urlBuilder;
 
     /**
      * @param ContextInterface $context

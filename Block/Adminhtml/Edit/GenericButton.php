@@ -11,12 +11,12 @@ class GenericButton
     /**
      * @var Context
      */
-    protected $context;
+    protected Context $context;
 
     /**
      * @var Registry
      */
-    protected $registry;
+    protected Registry $registry;
 
     /**
      * @param Context $context
@@ -33,7 +33,7 @@ class GenericButton
     /**
      * @return int|null
      */
-    public function getId()
+    public function getId(): ?int
     {
         $gallery = $this->registry->registry('gardenlawn_mediagallery_gallery');
         return $gallery ? $gallery->getId() : null;
@@ -44,7 +44,7 @@ class GenericButton
      * @param array $params
      * @return string
      */
-    public function getUrl($route = '', $params = []): string
+    public function getUrl(string $route = '', array $params = []): string
     {
         return $this->context->getUrlBuilder()->getUrl($route, $params);
     }

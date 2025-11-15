@@ -6,13 +6,14 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
+use Magento\Framework\Controller\Result\Redirect;
 
 class Delete extends Action
 {
     /**
      * @var GalleryRepositoryInterface
      */
-    private $galleryRepository;
+    private GalleryRepositoryInterface $galleryRepository;
 
     /**
      * @param Context $context
@@ -27,9 +28,9 @@ class Delete extends Action
     }
 
     /**
-     * @return \Magento\Framework\Controller\Result\Redirect
+     * @return Redirect
      */
-    public function execute()
+    public function execute(): Redirect
     {
         $id = $this->getRequest()->getParam('id');
         $resultRedirect = $this->resultRedirectFactory->create();

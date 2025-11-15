@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
+use Magento\Backend\Model\View\Result\Forward;
 use Magento\Backend\Model\View\Result\ForwardFactory;
 
 class NewAction extends Action
@@ -11,7 +12,7 @@ class NewAction extends Action
     /**
      * @var ForwardFactory
      */
-    protected $resultForwardFactory;
+    protected ForwardFactory $resultForwardFactory;
 
     /**
      * @param Action\Context $context
@@ -26,9 +27,9 @@ class NewAction extends Action
     }
 
     /**
-     * @return \Magento\Backend\Model\View\Result\Forward
+     * @return Forward
      */
-    public function execute()
+    public function execute(): Forward
     {
         $resultForward = $this->resultForwardFactory->create();
         return $resultForward->forward('edit');

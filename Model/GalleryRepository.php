@@ -3,10 +3,12 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Model;
 
+use Exception;
 use GardenLawn\MediaGallery\Api\Data\GalleryInterface;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery as GalleryResource;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
+use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 class GalleryRepository implements GalleryRepositoryInterface
@@ -14,12 +16,12 @@ class GalleryRepository implements GalleryRepositoryInterface
     /**
      * @var GalleryFactory
      */
-    private $galleryFactory;
+    private GalleryFactory $galleryFactory;
 
     /**
      * @var GalleryResource
      */
-    private $galleryResource;
+    private GalleryResource $galleryResource;
 
     /**
      * @var CollectionFactory
@@ -56,6 +58,7 @@ class GalleryRepository implements GalleryRepositoryInterface
 
     /**
      * @inheritDoc
+     * @throws AlreadyExistsException
      */
     public function save(GalleryInterface $gallery): GalleryInterface
     {
@@ -65,6 +68,7 @@ class GalleryRepository implements GalleryRepositoryInterface
 
     /**
      * @inheritDoc
+     * @throws Exception
      */
     public function delete(GalleryInterface $gallery): bool
     {
@@ -74,6 +78,8 @@ class GalleryRepository implements GalleryRepositoryInterface
 
     /**
      * @inheritDoc
+     * @throws NoSuchEntityException
+     * @throws Exception
      */
     public function deleteById(int $id): bool
     {

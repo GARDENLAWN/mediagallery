@@ -5,6 +5,7 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 
 class Index extends Action
@@ -12,7 +13,7 @@ class Index extends Action
     /**
      * @var PageFactory
      */
-    protected $resultPageFactory;
+    protected PageFactory $resultPageFactory;
 
     /**
      * @param Context $context
@@ -29,11 +30,11 @@ class Index extends Action
     /**
      * Index action
      *
-     * @return \Magento\Backend\Model\View\Result\Page
+     * @return Page
      */
-    public function execute()
+    public function execute(): Page
     {
-        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('GardenLawn_MediaGallery::items');
         $resultPage->getConfig()->getTitle()->prepend(__('Galleries'));

@@ -10,7 +10,7 @@ class Gallery extends AbstractDb
     /**
      * @inheritDoc
      */
-    protected function _construct()
+    protected function _construct(): void
     {
         $this->_init('gardenlawn_mediagallery', 'id');
     }

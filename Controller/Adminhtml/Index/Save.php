@@ -7,18 +7,20 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class Save extends Action
 {
     /**
      * @var GalleryRepositoryInterface
      */
-    private $galleryRepository;
+    private GalleryRepositoryInterface $galleryRepository;
 
     /**
      * @var GalleryFactory
      */
-    private $galleryFactory;
+    private GalleryFactory $galleryFactory;
 
     /**
      * @param Context $context
@@ -36,9 +38,10 @@ class Save extends Action
     }
 
     /**
-     * @return \Magento\Framework\Controller\Result\Redirect
+     * @return Redirect
+     * @throws NoSuchEntityException
      */
-    public function execute()
+    public function execute(): Redirect
     {
         $data = $this->getRequest()->getPostValue();
         $resultRedirect = $this->resultRedirectFactory->create();

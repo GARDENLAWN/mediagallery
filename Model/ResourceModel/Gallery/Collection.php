@@ -17,7 +17,7 @@ class Collection extends AbstractCollection
     /**
      * @inheritDoc
      */
-    protected function _construct()
+    protected function _construct(): void
     {
         $this->_init(Gallery::class, GalleryResource::class);
     }

@@ -5,13 +5,19 @@ namespace GardenLawn\MediaGallery\Model;
 
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use Magento\Ui\DataProvider\AbstractDataProvider;
+use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection;
 
 class DataProvider extends AbstractDataProvider
 {
     /**
      * @var array
      */
-    protected $loadedData;
+    protected array $loadedData;
+
+    /**
+     * @var Collection
+     */
+    protected $collection;
 
     /**
      * @param string $name
@@ -42,7 +48,7 @@ class DataProvider extends AbstractDataProvider
             return $this->loadedData;
         }
         $items = $this->collection->getItems();
-        /** @var \GardenLawn\MediaGallery\Model\Gallery $gallery */
+        /** @var Gallery $gallery */
         foreach ($items as $gallery) {
             $this->loadedData[$gallery->getId()] = $gallery->getData();
         }

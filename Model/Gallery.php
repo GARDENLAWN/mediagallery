@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Model;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\AbstractModel;
 use GardenLawn\MediaGallery\Api\Data\GalleryInterface;
 
@@ -10,16 +11,17 @@ class Gallery extends AbstractModel implements GalleryInterface
 {
     /**
      * @inheritDoc
+     * @throws LocalizedException
      */
-    protected function _construct()
+    protected function _construct(): void
     {
-        $this->_init(\GardenLawn\MediaGallery\Model\ResourceModel\Gallery::class);
+        $this->_init(ResourceModel\Gallery::class);
     }
 
     /**
      * @inheritDoc
      */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->getData(self::ID);
     }
@@ -27,7 +29,7 @@ class Gallery extends AbstractModel implements GalleryInterface
     /**
      * @inheritDoc
      */
-    public function setId($id)
+    public function setId(int $id): static
     {
         return $this->setData(self::ID, $id);
     }
