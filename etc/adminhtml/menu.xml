@@ -2,6 +2,6 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
         <add id="GardenLawn_MediaGallery::mediagallery" title="Media Gallery" module="GardenLawn_MediaGallery" sortOrder="50" resource="GardenLawn_MediaGallery::mediagallery"/>
-        <add id="GardenLawn_MediaGallery::items" title="Galleries" module="GardenLawn_MediaGallery" sortOrder="10" parent="GardenLawn_MediaGallery::mediagallery" action="gardenlawn_mediagallery/index/index" resource="GardenLawn_MediaGallery::mediagallery_items"/>
+        <add id="GardenLawn_MediaGallery::items" title="Galleries" module="GardenLawn_MediaGallery" sortOrder="10" parent="GardenLawn_MediaGallery::mediagallery" action="gardenlawn_mediagallery/index/index" resource="GardenLawn_MediaGallery::items"/>
     </menu>
 </config>

@@ -17,9 +17,18 @@ class GenericButton
         $this->registry = $registry;
     }
 
-    public function getGalleryId()
+    public function getGalleryId(): ?int
     {
-        return $this->registry->registry('mediagallery_gallery')->getId();
+        // Prefer model registered by Edit controller
+        $model = $this->registry->registry('current_gallery');
+        if (is_object($model) && method_exists($model, 'getId')) {
+            $id = (int)$model->getId();
+            return $id ?: null;
+        }
+
+        // Fallback to request parameter if registry is not set
+        $paramId = (int)$this->context->getRequest()->getParam('id');
+        return $paramId ?: null;
     }
 
     public function getUrl($route = '', $params = []): string
