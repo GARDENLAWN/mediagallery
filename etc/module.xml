@@ -3,8 +3,10 @@
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
     <module name="GardenLawn_MediaGallery" setup_version="1.0.0">
         <sequence>
-            <module name="Magento_Theme"/>
             <module name="Magento_Backend"/>
+            <module name="Magento_Ui"/>
+            <module name="Magento_MediaGalleryApi"/>
+            <module name="Magento_AwsS3"/>
             <module name="GardenLawn_Core"/>
         </sequence>
     </module>
