@@ -4,6 +4,7 @@
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">gardenlawn_mediagallery_form.gardenlawn_mediagallery_form_data_source</item>
         </item>
+        <item name="label" xsi:type="string" translate="true">Gallery Information</item>
         <item name="template" xsi:type="string">templates/form/collapsible</item>
     </argument>
     <settings>
@@ -12,8 +13,9 @@
             <button name="delete" class="GardenLawn\MediaGallery\Block\Adminhtml\Edit\DeleteButton"/>
             <button name="reset" class="GardenLawn\MediaGallery\Block\Adminhtml\Edit\ResetButton"/>
             <button name="save" class="GardenLawn\MediaGallery\Block\Adminhtml\Edit\SaveButton"/>
-            <button name="save_and_continue" class="GardenLawn\MediaGallery\Block\Adminhtml\Edit\SaveAndContinueButton"/>
         </buttons>
+        <namespace>gardenlawn_mediagallery_form</namespace>
+        <dataScope>data</dataScope>
         <deps>
             <dep>gardenlawn_mediagallery_form.gardenlawn_mediagallery_form_data_source</dep>
         </deps>
@@ -28,15 +30,9 @@
     </dataSource>
     <fieldset name="general">
         <settings>
-            <label translate="true">General</label>
+            <label translate="true">General Information</label>
         </settings>
-        <field name="id" formElement="input" sortOrder="10">
-            <settings>
-                <dataType>text</dataType>
-                <visible>false</visible>
-            </settings>
-        </field>
-        <field name="name" formElement="input" sortOrder="20">
+        <field name="name" formElement="input">
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Name</label>
@@ -45,34 +41,49 @@
                 </validation>
             </settings>
         </field>
-        <field name="sortorder" formElement="input" sortOrder="30">
+        <field name="sortorder" formElement="input">
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Sort Order</label>
             </settings>
         </field>
-        <field name="enabled" formElement="checkbox" sortOrder="40">
+        <field name="enabled" formElement="checkbox">
             <settings>
                 <dataType>boolean</dataType>
                 <label translate="true">Enabled</label>
-                <prefer>toggle</prefer>
-                <valueMap>
-                    <item name="true" xsi:type="string">1</item>
-                    <item name="false" xsi:type="string">0</item>
-                </valueMap>
-                <default>1</default>
             </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
         </field>
     </fieldset>
-    <htmlContent name="assets" sortOrder="50">
+    <fieldset name="assets">
         <settings>
-            <wrapper>
-                <label translate="true">Assets</label>
-                <collapsible>true</collapsible>
-                <opened>false</opened>
-            </wrapper>
-            <componentType>fieldset</componentType>
+            <label translate="true">Assets</label>
+            <collapsible>true</collapsible>
         </settings>
-        <block class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Edit\Tab\Assets" name="gallery_assets"/>
-    </htmlContent>
+        <insertListing name="assets_listing">
+            <settings>
+                <externalProvider>gardenlawn_mediagallery_asset_listing.gardenlawn_mediagallery_asset_listing_data_source</externalProvider>
+                <selectionsProvider>gardenlawn_mediagallery_asset_listing.gardenlawn_mediagallery_asset_listing.asset_columns.ids</selectionsProvider>
+                <autoRender>true</autoRender>
+                <dataScope>links.assets</dataScope>
+                <ns>gardenlawn_mediagallery_asset_listing</ns>
+                <imports>
+                    <link name="gallery_id">${ $.provider }:data.id</link>
+                </imports>
+                <exports>
+                    <link name="gallery_id">${ $.externalProvider }:params.gallery_id</link>
+                </exports>
+            </settings>
+        </insertListing>
+    </fieldset>
 </form>
