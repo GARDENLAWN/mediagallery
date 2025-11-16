@@ -59,7 +59,9 @@ class DataProvider extends UiDataProvider
             $data
         );
         $this->request = $request;
-        $this->collection = $collectionFactory->create();
+        // The parent constructor already initializes $this->collection using the collectionFactory.
+        // Re-initializing it here would overwrite the collection and lose any filters set by the parent.
+        // $this->collection = $collectionFactory->create();
     }
 
     /**

@@ -17,7 +17,7 @@ class Collection extends UiSearchResult
     /**
      * @var string
      */
-    protected $_idFieldName = 'composite_id'; // Changed to composite_id
+    protected $_idFieldName = 'id'; // Changed to composite_id
 
     /**
      * Collection for UI grid. Provide required constructor args to UiSearchResult
@@ -59,7 +59,8 @@ class Collection extends UiSearchResult
         // Add a composite ID for the UI grid to handle unique rows
         $this->getSelect()->columns(
             [
-                'composite_id' => new Zend_Db_Expr("CONCAT(main_table.gallery_id, '_', main_table.asset_id)")
+                'id' => 'main_table.gallery_id',
+                'gallery_id' => 'main_table.gallery_id'
             ]
         );
     }
