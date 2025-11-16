@@ -1,0 +1,27 @@
+<?php
+/**
+ * @var \GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles $block
+ */
+?>
+<div class="gallery-tiles-container">
+    <div class="gallery-actions">
+        <button onclick="location.href = '<?= $block->escapeUrl($block->getAddNewGalleryUrl()) ?>'" class="action-primary">
+            <?= $block->escapeHtml(__('Add New Gallery')) ?>
+        </button>
+    </div>
+
+    <div class="gallery-tiles-grid">
+        <?php foreach ($block->getGalleriesWithThumbnails() as $gallery): ?>
+            <div class="gallery-tile">
+                <a href="<?= $block->escapeUrl($gallery['edit_url']) ?>" class="tile-link">
+                    <div class="tile-image-wrapper">
+                        <img src="<?= $block->escapeUrl($gallery['thumbnail']) ?>" alt="<?= $block->escapeHtmlAttr($gallery['name']) ?>" />
+                    </div>
+                    <div class="tile-info">
+                        <span class="tile-name"><?= $block->escapeHtml($gallery['name']) ?></span>
+                    </div>
+                </a>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>

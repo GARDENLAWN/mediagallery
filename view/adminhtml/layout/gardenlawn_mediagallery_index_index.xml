@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="GardenLawn_MediaGallery::css/gallery-tiles.css"/>
+    </head>
     <body>
         <referenceContainer name="content">
-            <uiComponent name="gardenlawn_mediagallery_listing"/>
+            <block class="GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles" name="gardenlawn.gallery.tiles" template="GardenLawn_MediaGallery::gallery/tiles.phtml"/>
         </referenceContainer>
     </body>
 </page>
