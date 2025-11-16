@@ -59,9 +59,6 @@ class DataProvider extends UiDataProvider
             $data
         );
         $this->request = $request;
-        // The parent constructor already initializes $this->collection using the collectionFactory.
-        // Re-initializing it here would overwrite the collection and lose any filters set by the parent.
-        // $this->collection = $collectionFactory->create();
     }
 
     /**
@@ -76,6 +73,5 @@ class DataProvider extends UiDataProvider
         if ($galleryId) {
             $this->collection->addFieldToFilter('gallery_id', $galleryId);
         }
-        parent::_renderFiltersBefore();
     }
 }
