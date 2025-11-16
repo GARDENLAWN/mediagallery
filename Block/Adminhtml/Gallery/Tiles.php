@@ -43,7 +43,6 @@ class Tiles extends Template
      */
     public function getGalleriesData(): array
     {
-        /** @var GalleryCollection $galleries */
         $galleries = $this->galleryCollectionFactory->create()->setOrder('sortorder', 'ASC');
         $galleries->joinAssetCount();
 
@@ -71,6 +70,9 @@ class Tiles extends Template
         return $galleriesData;
     }
 
+    /**
+     * @throws NoSuchEntityException
+     */
     public function getMediaUrl(): string
     {
         return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
