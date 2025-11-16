@@ -49,7 +49,16 @@ class Collection extends UiSearchResult
         $this->getSelect()->joinLeft(
             ['mga' => $this->getTable('media_gallery_asset')],
             'main_table.asset_id = mga.id',
-            ['path']
+            [
+                'path',
+                'title',
+                'description',
+                'source',
+                'content_type',
+                'width',
+                'height',
+                'size'
+            ]
         );
 
         // Mapowania filtrów aby uniknąć niejednoznaczności aliasu `id`

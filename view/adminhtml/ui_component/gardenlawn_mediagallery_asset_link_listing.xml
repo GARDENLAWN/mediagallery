@@ -59,6 +59,62 @@
                 </item>
             </argument>
         </column>
+        <column name="title">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Title</item>
+                </item>
+            </argument>
+        </column>
+        <column name="description">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Description</item>
+                </item>
+            </argument>
+        </column>
+        <column name="source">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Source</item>
+                </item>
+            </argument>
+        </column>
+        <column name="content_type">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Content Type</item>
+                </item>
+            </argument>
+        </column>
+        <column name="width">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">number</item>
+                    <item name="label" xsi:type="string" translate="true">Width</item>
+                </item>
+            </argument>
+        </column>
+        <column name="height">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">number</item>
+                    <item name="label" xsi:type="string" translate="true">Height</item>
+                </item>
+            </argument>
+        </column>
+        <column name="size">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">number</item>
+                    <item name="label" xsi:type="string" translate="true">Size</item>
+                </item>
+            </argument>
+        </column>
         <column name="sort_order">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
