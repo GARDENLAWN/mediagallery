@@ -47,7 +47,7 @@ define([
                 });
             });
 
-            this._ajaxRequest(this.options.saveOrderUrl, { order: newOrder }, 'Saving order...');
+            this._ajaxRequest(this.options.saveOrderUrl, { order: newOrder });
         },
 
         _filterTiles: function () {
@@ -89,7 +89,7 @@ define([
             let currentStatus = tile.data('enabled');
             let newStatus = currentStatus ? 0 : 1;
 
-            this._ajaxRequest(this.options.toggleStatusUrl, { id: galleryId, status: newStatus }, 'Updating status...', function() {
+            this._ajaxRequest(this.options.toggleStatusUrl, { id: galleryId, status: newStatus }, function() {
                 tile.data('enabled', newStatus);
                 tile.attr('data-enabled', newStatus);
                 link.find('span').text(newStatus ? 'Disable' : 'Enable');
@@ -107,7 +107,7 @@ define([
                 content: `Are you sure you want to delete the gallery "${galleryName}"?`,
                 actions: {
                     confirm: () => {
-                        this._ajaxRequest(this.options.deleteUrl, { id: galleryId }, 'Deleting...', function() {
+                        this._ajaxRequest(this.options.deleteUrl, { id: galleryId }, function() {
                             tile.remove();
                         });
                     }
@@ -115,10 +115,10 @@ define([
             });
         },
 
-        _ajaxRequest: function (url, data, loaderText, successCallback) {
+        _ajaxRequest: function (url, data, successCallback) {
             data.form_key = this.options.formKey;
 
-            $('body').trigger('processStart', { text: loaderText || 'Please wait...' });
+            $('body').trigger('processStart');
 
             $.ajax({
                 url: url,
