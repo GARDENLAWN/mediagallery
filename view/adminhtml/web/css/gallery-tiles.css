@@ -104,7 +104,7 @@
 }
 .drag-handle::before {
     font-family: 'Admin Icons';
-    content: '\e62d';
+    content: '\e617';
     font-size: 20px;
 }
 .gallery-tile:active .drag-handle { cursor: grabbing; }
