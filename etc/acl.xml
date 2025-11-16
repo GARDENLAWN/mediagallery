@@ -4,7 +4,10 @@
         <resources>
             <resource id="Magento_Backend::admin">
                 <resource id="GardenLawn_MediaGallery::mediagallery" title="Media Gallery" sortOrder="50">
-                    <resource id="GardenLawn_MediaGallery::items" title="Galleries" sortOrder="10" />
+                    <resource id="GardenLawn_MediaGallery::items" title="Galleries" sortOrder="10">
+                        <resource id="GardenLawn_MediaGallery::asset_link_save" title="Save Asset Link" sortOrder="10" />
+                        <resource id="GardenLawn_MediaGallery::asset_link_delete" title="Delete Asset Link" sortOrder="20" />
+                    </resource>
                 </resource>
             </resource>
         </resources>

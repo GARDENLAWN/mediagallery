@@ -105,6 +105,29 @@
                 <item name="opened" xsi:type="boolean">false</item>
             </item>
         </argument>
+        <button name="add_new_asset_link">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="formElement" xsi:type="string">container</item>
+                    <item name="componentType" xsi:type="string">container</item>
+                    <item name="buttonClasses" xsi:type="string">action-primary</item>
+                    <item name="title" xsi:type="string" translate="true">Add New Asset Link</item>
+                    <item name="actions" xsi:type="array">
+                        <item name="0" xsi:type="array">
+                            <item name="target" xsi:type="string">self</item>
+                            <item name="callback" xsi:type="array">
+                                <item name="0" xsi:type="string">location</item>
+                                <item name="1" xsi:type="string">url</item>
+                            </item>
+                        </item>
+                    </item>
+                    <item name="url" xsi:type="url" path="gardenlawn_mediagallery_assetlink/assetlink/edit">
+                        <param name="gallery_id">${ $.provider }:data.id</param>
+                    </item>
+                    <item name="sortOrder" xsi:type="number">10</item>
+                </item>
+            </argument>
+        </button>
         <insertListing name="gardenlawn_mediagallery_asset_link_listing">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">

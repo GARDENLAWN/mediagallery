@@ -136,6 +136,14 @@
                 </item>
             </argument>
         </column>
-        <!-- Add actions column if needed for editing/deleting links -->
+        <column name="actions" class="GardenLawn\MediaGallery\Ui\Component\Listing\Column\AssetLinkActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="indexField" xsi:type="string">id</item>
+                    <item name="urlEntityParamName" xsi:type="string">id</item>
+                    <item name="label" xsi:type="string" translate="true">Actions</item>
+                </item>
+            </argument>
+        </column>
     </columns>
 </listing>
