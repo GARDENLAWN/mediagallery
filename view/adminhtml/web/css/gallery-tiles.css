@@ -115,7 +115,7 @@
 }
 .tile-actions-toggle::before {
     font-family: 'Admin Icons';
-    content: '\e60a';
+    content: '\e613';
     font-size: 20px;
 }
 
@@ -126,12 +126,12 @@
 }
 .gallery-tile[data-enabled="1"] .tile-status-indicator::before {
     font-family: 'Admin Icons';
-    content: '\e610'; /* checkmark */
+    content: '\e622'; /* checkmark */
     color: #87d37c;
 }
 .gallery-tile[data-enabled="0"] .tile-status-indicator::before {
     font-family: 'Admin Icons';
-    content: '\e611'; /* cross */
+    content: '\e61b'; /* cross */
     color: #e74c3c;
 }
 
