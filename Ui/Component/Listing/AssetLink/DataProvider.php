@@ -9,7 +9,7 @@ use Magento\Framework\Api\Search\ReportingInterface;
 use Magento\Framework\Api\Search\SearchCriteriaBuilder;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider as UiDataProvider;
-use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Collection; // Add this use statement
+use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Collection;
 
 class DataProvider extends UiDataProvider
 {
@@ -69,7 +69,8 @@ class DataProvider extends UiDataProvider
      */
     protected function _renderFiltersBefore(): void
     {
-        $galleryId = $this->request->getParam('id');
+        // Zmieniono 'id' na 'gallery_id'
+        $galleryId = $this->request->getParam('gallery_id');
         if ($galleryId) {
             $this->collection->addFieldToFilter('gallery_id', $galleryId);
         }
