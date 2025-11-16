@@ -1,0 +1,30 @@
+<?php
+/** @var \GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tree $block */
+?>
+<div class="gallery-tree-container">
+    <div id="gallery-tree"></div>
+</div>
+
+<script>
+    require(['jquery', 'jstree'], function($) {
+        $('#gallery-tree')
+            .on('changed.jstree', function (e, data) {
+                if (data.selected.length) {
+                    var selectedId = data.instance.get_node(data.selected[0]).id;
+                    var filterValue = (selectedId === 'root') ? '' : selectedId;
+                    $('body').trigger('gallery:filter:update', [filterValue]);
+                }
+            })
+            .jstree({
+                'core': {
+                    'data': <?= /* @noEscape */ $block->getTreeJson() ?>,
+                    'themes': {
+                        'name': 'default',
+                        'dots': true,
+                        'icons': true
+                    }
+                },
+                'plugins': ['wholerow']
+            });
+    });
+</script>

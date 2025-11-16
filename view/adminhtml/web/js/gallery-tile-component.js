@@ -28,6 +28,11 @@ define([
             this.element.on('click', '.action-toggle-status', this._toggleStatus.bind(this));
             this.element.on('click', '.action-delete', this._deleteGallery.bind(this));
             $(document).on('click', this._closeAllDropdowns.bind(this));
+
+            // Listen for the custom event from the tree
+            $('body').on('gallery:filter:update', (e, filterValue) => {
+                this.searchInput.val(filterValue).trigger('keyup');
+            });
         },
 
         _initSortable: function () {
@@ -57,7 +62,14 @@ define([
             this.grid.children('.gallery-tile').each(function () {
                 let tile = $(this);
                 let name = tile.find('.tile-name').text().toLowerCase();
-                if (name.includes(searchTerm)) {
+
+                // If search term is a path, check if the tile name starts with it.
+                // Otherwise, just check if it includes the term.
+                let isVisible = searchTerm.includes('/')
+                    ? name.startsWith(searchTerm)
+                    : name.includes(searchTerm);
+
+                if (isVisible) {
                     tile.show();
                     visibleCount++;
                 } else {
