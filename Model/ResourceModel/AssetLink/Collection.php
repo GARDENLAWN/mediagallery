@@ -15,11 +15,6 @@ use Zend_Db_Expr;
 class Collection extends UiSearchResult
 {
     /**
-     * @var string
-     */
-    protected $_idFieldName = 'id'; // Changed to composite_id
-
-    /**
      * Collection for UI grid. Provide required constructor args to UiSearchResult
      * to ensure main table is set and prevent empty table name SQL errors.
      * @throws LocalizedException
@@ -50,18 +45,16 @@ class Collection extends UiSearchResult
     protected function _initSelect(): void
     {
         parent::_initSelect();
+        // Dołącz ścieżkę zasobu z tabeli media_gallery_asset
         $this->getSelect()->joinLeft(
             ['mga' => $this->getTable('media_gallery_asset')],
             'main_table.asset_id = mga.id',
             ['path']
         );
 
-        // Add a composite ID for the UI grid to handle unique rows
-        $this->getSelect()->columns(
-            [
-                'id' => 'main_table.gallery_id',
-                'gallery_id' => 'main_table.gallery_id'
-            ]
-        );
+        // Mapowania filtrów aby uniknąć niejednoznaczności aliasu `id`
+        $this->addFilterToMap('id', 'main_table.id');
+        $this->addFilterToMap('gallery_id', 'main_table.gallery_id');
+        $this->addFilterToMap('asset_id', 'main_table.asset_id');
     }
 }

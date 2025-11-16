@@ -59,6 +59,8 @@ class DataProvider extends UiDataProvider
             $data
         );
         $this->request = $request;
+        // Utwórz kolekcję dla providera, aby _renderFiltersBefore mógł zastosować filtry
+        $this->collection = $collectionFactory->create();
     }
 
     /**
@@ -68,7 +70,7 @@ class DataProvider extends UiDataProvider
      */
     protected function _renderFiltersBefore(): void
     {
-        // Zmieniono 'id' na 'gallery_id'
+        // Filtruj po powiązanej galerii przekazywanej z formularza (imports/exports)
         $galleryId = $this->request->getParam('gallery_id');
         if ($galleryId) {
             $this->collection->addFieldToFilter('gallery_id', $galleryId);
