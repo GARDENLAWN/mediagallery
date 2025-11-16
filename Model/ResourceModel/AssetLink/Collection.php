@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace GardenLawn\MediaGallery\Model\ResourceModel\Gallery;
+namespace GardenLawn\MediaGallery\Model\ResourceModel\AssetLink;
 
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery;
+use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink as AssetLinkResource;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult as UiSearchResult;
 use Psr\Log\LoggerInterface as Logger;
@@ -12,10 +12,6 @@ use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Zend_Db_Expr;
 
-/**
- * Grid collection that is compatible with Magento UI DataProvider
- * by implementing SearchResultInterface via UiSearchResult base class.
- */
 class Collection extends UiSearchResult
 {
     /**
@@ -35,9 +31,9 @@ class Collection extends UiSearchResult
             $logger,
             $fetchStrategy,
             $eventManager,
-            'gardenlawn_mediagallery',
-            Gallery::class,
-            'id'
+            'gardenlawn_mediagallery_asset_link', // Main table name
+            AssetLinkResource::class, // Resource Model class
+            'id' // This is the primary field for the entity, but not necessarily for the collection's internal indexing
         );
     }
 
@@ -49,17 +45,16 @@ class Collection extends UiSearchResult
     protected function _initSelect(): void
     {
         parent::_initSelect();
+        // Dołącz ścieżkę zasobu z tabeli media_gallery_asset
         $this->getSelect()->joinLeft(
-            ['asset_link' => $this->getTable('gardenlawn_mediagallery_asset_link')],
-            'main_table.id = asset_link.gallery_id',
-            []
-        )->columns(
-            [
-                'asset_count' => new Zend_Db_Expr('COUNT(asset_link.asset_id)')
-            ]
-        )->group('main_table.id');
+            ['mga' => $this->getTable('media_gallery_asset')],
+            'main_table.asset_id = mga.id',
+            ['path']
+        );
 
-        // Map 'id' to 'main_table.id' to resolve ambiguity in WHERE clauses
+        // Mapowania filtrów aby uniknąć niejednoznaczności aliasu `id`
         $this->addFilterToMap('id', 'main_table.id');
+        $this->addFilterToMap('gallery_id', 'main_table.gallery_id');
+        $this->addFilterToMap('asset_id', 'main_table.asset_id');
     }
 }

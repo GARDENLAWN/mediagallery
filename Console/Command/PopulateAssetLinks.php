@@ -1,4 +1,5 @@
 <?php
+
 namespace GardenLawn\MediaGallery\Console\Command;
 
 use Symfony\Component\Console\Command\Command;
@@ -7,23 +8,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Magento\Framework\App\ResourceConnection;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\DB\Expression;
-use Symfony\Component\Console\Input\InputOption; // Dodano
+use Symfony\Component\Console\Input\InputOption;
+
+// Dodano
 
 class PopulateAssetLinks extends Command
 {
-    const DRY_RUN_OPTION = 'dry-run'; // Dodano stałą
+    const string DRY_RUN_OPTION = 'dry-run'; // Dodano stałą
 
     protected ResourceConnection $resourceConnection;
     protected GalleryCollectionFactory $galleryCollectionFactory;
     protected LoggerInterface $logger;
 
     public function __construct(
-        ResourceConnection $resourceConnection,
+        ResourceConnection       $resourceConnection,
         GalleryCollectionFactory $galleryCollectionFactory,
-        LoggerInterface $logger,
-        string $name = null
-    ) {
+        LoggerInterface          $logger,
+        string                   $name = null
+    )
+    {
         $this->resourceConnection = $resourceConnection;
         $this->galleryCollectionFactory = $galleryCollectionFactory;
         $this->logger = $logger;
@@ -73,7 +76,7 @@ class PopulateAssetLinks extends Command
             $selectMaxSortOrders = $connection->select()
                 ->from(
                     $linkTable,
-                    ['gallery_id', new Expression('MAX(sort_order)')]
+                    ['gallery_id', 'MAX(sort_order)']
                 )
                 ->group('gallery_id');
             $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders); // Zwraca [gallery_id => max_sort_order]
