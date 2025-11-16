@@ -8,7 +8,7 @@ interface AssetLinkInterface
     public const ID = 'id';
     public const GALLERY_ID = 'gallery_id';
     public const ASSET_ID = 'asset_id';
-    public const SORT_ORDER = 'sort_order';
+    public const SORT_ORDER = 'sortorder';
     public const ENABLED = 'enabled';
 
     /**

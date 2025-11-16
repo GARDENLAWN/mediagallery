@@ -41,7 +41,7 @@ class LinkAssets
             $selectMaxSortOrders = $connection->select()
                 ->from(
                     $linkTable,
-                    ['gallery_id', new Expression('MAX(sort_order)')]
+                    ['gallery_id', new Expression('MAX(sortorder)')]
                 )
                 ->group('gallery_id');
             $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders); // Zwraca [gallery_id => max_sort_order]
@@ -85,7 +85,7 @@ class LinkAssets
                         $linksToInsert[] = [
                             'gallery_id' => $galleryId,
                             'asset_id' => (int)$asset['id'],
-                            'sort_order' => $currentSortOrder++,
+                            'sortorder' => $currentSortOrder++,
                             'enabled' => 1
                         ];
                     }

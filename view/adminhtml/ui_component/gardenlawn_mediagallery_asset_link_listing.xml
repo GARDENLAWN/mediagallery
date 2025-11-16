@@ -115,7 +115,7 @@
                 </item>
             </argument>
         </column>
-        <column name="sort_order">
+        <column name="sortorder">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="filter" xsi:type="string">number</item>

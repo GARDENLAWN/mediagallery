@@ -52,7 +52,7 @@ class Tiles extends Template
         foreach ($galleries as $gallery) {
             $assetLinkCollection = $this->assetLinkCollectionFactory->create();
             $assetLinkCollection->addFieldToFilter('gallery_id', $gallery->getId())
-                ->setOrder('sort_order', 'ASC')
+                ->setOrder('sortorder', 'ASC')
                 ->setPageSize(1);
 
             $firstAsset = $assetLinkCollection->getFirstItem();
