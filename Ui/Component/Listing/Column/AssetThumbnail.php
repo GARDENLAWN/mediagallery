@@ -7,7 +7,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
-use Magento\Ui\Component\Factory as UiComponentFactory;
+use Magento\Framework\View\Element\UiComponentFactory as UiComponentFactory;
 
 class AssetThumbnail extends Column
 {
