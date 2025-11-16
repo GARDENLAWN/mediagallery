@@ -7,12 +7,15 @@
 //
 //  Layout Adjustments
 //  ---------------------------------------------
-.admin__main-content > .page-main-actions + .entry-edit.form-inline {
-    margin-top: 0;
-}
-
-.admin__main-content {
-    .page-columns .admin__page-main {
+.page-columns {
+    .page-main-sidebar {
+        width: 250px;
+        min-width: 250px;
+        padding: 0;
+        border-right: 1px solid @color-gray80;
+        background: @color-gray98;
+    }
+    .page-main-content {
         padding-left: 2rem;
     }
 }
@@ -22,9 +25,8 @@
 //  ---------------------------------------------
 .gallery-tree-container {
     padding: 2rem;
-    border-right: 1px solid @color-gray80;
     height: 100%;
-    background: @color-gray98;
+    overflow-y: auto;
 
     .jstree-default .jstree-node {
         margin-left: 0;

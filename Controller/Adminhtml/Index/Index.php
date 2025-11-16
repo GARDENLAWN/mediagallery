@@ -36,7 +36,7 @@ class Index extends Action
     {
         /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('GardenLawn_MediaGallery::items');
+        $resultPage->setActiveMenu('GardenLawn_MediaGallery::gallery');
         $resultPage->getConfig()->getTitle()->prepend(__('Galleries'));
         return $resultPage;
     }
