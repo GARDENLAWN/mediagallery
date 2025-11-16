@@ -10,9 +10,10 @@
         </button>
     </div>
 
-    <div class="gallery-tiles-grid">
+    <div id="gallery-tiles-grid" class="gallery-tiles-grid">
         <?php foreach ($block->getGalleriesWithThumbnails() as $gallery): ?>
-            <div class="gallery-tile">
+            <div class="gallery-tile" data-id="<?= $block->escapeHtmlAttr($gallery['id']) ?>">
+                <div class="drag-handle"></div>
                 <a href="<?= $block->escapeUrl($gallery['edit_url']) ?>" class="tile-link">
                     <div class="tile-image-wrapper">
                         <img src="<?= $block->escapeUrl($gallery['thumbnail']) ?>" alt="<?= $block->escapeHtmlAttr($gallery['name']) ?>" />
@@ -25,3 +26,41 @@
         <?php endforeach; ?>
     </div>
 </div>
+
+<script>
+    require(['jquery', 'sortablejs'], function($, Sortable) {
+        var grid = document.getElementById('gallery-tiles-grid');
+
+        new Sortable(grid, {
+            animation: 150,
+            handle: '.drag-handle',
+            onEnd: function () {
+                var newOrder = [];
+                $(grid).children('.gallery-tile').each(function(index) {
+                    newOrder.push({
+                        id: $(this).data('id'),
+                        sortorder: index + 1
+                    });
+                });
+
+                $.ajax({
+                    url: '<?= $block->escapeUrl($block->getUrl('gardenlawn_mediagallery/index/saveorder')) ?>',
+                    type: 'POST',
+                    data: {
+                        form_key: window.FORM_KEY,
+                        order: newOrder
+                    },
+                    showLoader: true,
+                    success: function(response) {
+                        if (response.error) {
+                            alert('Error saving order: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('An unknown error occurred.');
+                    }
+                });
+            }
+        });
+    });
+</script>
