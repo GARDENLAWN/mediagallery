@@ -59,15 +59,19 @@ define([
             let searchTerm = this.searchInput.val().toLowerCase();
             let visibleCount = 0;
 
+            if (searchTerm === '') {
+                this.grid.children('.gallery-tile').show();
+                visibleCount = this.grid.children('.gallery-tile').length;
+                this.noResultsMessage.toggle(visibleCount === 0);
+                return;
+            }
+
             this.grid.children('.gallery-tile').each(function () {
                 let tile = $(this);
                 let name = tile.find('.tile-name').text().toLowerCase();
 
-                // If search term is a path, check if the tile name starts with it.
-                // Otherwise, just check if it includes the term.
-                let isVisible = searchTerm.includes('/')
-                    ? name.startsWith(searchTerm)
-                    : name.includes(searchTerm);
+                // New, precise filtering logic
+                let isVisible = (name === searchTerm) || name.startsWith(searchTerm + '/');
 
                 if (isVisible) {
                     tile.show();
