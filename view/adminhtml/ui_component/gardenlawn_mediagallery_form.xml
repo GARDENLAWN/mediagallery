@@ -10,7 +10,6 @@
             <item name="dataScope" xsi:type="string">data</item>
             <item name="namespace" xsi:type="string">gardenlawn_mediagallery_form</item>
         </item>
-        <!-- Use a valid core UI form template. 'with-tabs' does not exist and caused DOMDocument errors. -->
         <item name="template" xsi:type="string">templates/form/collapsible</item>
         <item name="buttons" xsi:type="array">
             <item name="back" xsi:type="string">GardenLawn\MediaGallery\Block\Adminhtml\Edit\BackButton</item>
