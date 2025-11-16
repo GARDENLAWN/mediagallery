@@ -17,6 +17,10 @@
                 <item name="config" xsi:type="array">
                     <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
                     <item name="update_url" xsi:type="url" path="mui/index/render"/>
+                    <!-- Umożliw aktywne przekazywanie parametru gallery_id do providera poprzez URL/filters -->
+                    <item name="filter_url_params" xsi:type="array">
+                        <item name="gallery_id" xsi:type="string">*</item>
+                    </item>
                     <item name="storageConfig" xsi:type="array">
                         <item name="indexField" xsi:type="string">id</item> <!-- Changed to composite_id -->
                     </item>

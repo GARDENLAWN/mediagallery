@@ -71,9 +71,24 @@ class DataProvider extends UiDataProvider
     protected function _renderFiltersBefore(): void
     {
         // Filtruj po powiązanej galerii przekazywanej z formularza (imports/exports)
+        // W trybie externalFilterMode wartość może przyjść jako filters[gallery_id]
         $galleryId = $this->request->getParam('gallery_id');
-        if ($galleryId) {
+        if ($galleryId === null || $galleryId === '') {
+            $filters = $this->request->getParam('filters');
+            if (is_array($filters) && isset($filters['gallery_id'])) {
+                $galleryId = $filters['gallery_id'];
+            }
+        }
+
+        if ($galleryId !== null && $galleryId !== '') {
+            // Zabezpieczenie typu – oczekujemy ID numeryczne
+            if (is_numeric($galleryId)) {
+                $galleryId = (int)$galleryId;
+            }
             $this->collection->addFieldToFilter('gallery_id', $galleryId);
+        } else {
+            // Brak kontekstu galerii – nie ładuj żadnych rekordów (zabezpieczenie przed pełnym skanem tabeli)
+            $this->collection->addFieldToFilter('gallery_id', ['in' => [-1]]);
         }
     }
 }

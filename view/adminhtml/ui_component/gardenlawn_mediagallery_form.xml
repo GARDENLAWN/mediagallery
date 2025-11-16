@@ -118,10 +118,10 @@
                     <item name="behaviourType" xsi:type="string">simple</item>
                     <item name="externalFilterMode" xsi:type="boolean">true</item>
                     <item name="imports" xsi:type="array">
-                        <item name="gallery_id" xsi:type="string">${ $.provider }:data.id</item>
+                        <item name="params.gallery_id" xsi:type="string">${ $.provider }:data.id</item>
                     </item>
                     <item name="exports" xsi:type="array">
-                        <item name="gallery_id" xsi:type="string">${ $.provider }:data.id</item>
+                        <item name="params.gallery_id" xsi:type="string">${ $.provider }:data.id</item>
                     </item>
                 </item>
             </argument>
