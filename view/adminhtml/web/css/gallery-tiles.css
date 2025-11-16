@@ -67,7 +67,7 @@
 
 .drag-handle::before {
     font-family: 'Admin Icons';
-    content: '\\e62d'; /* This is the "drag" icon in Magento's icon font */
+    content: '\e606'; /* This is the "drag" icon in Magento's icon font */
     color: white;
     font-size: 20px;
     line-height: 24px;
