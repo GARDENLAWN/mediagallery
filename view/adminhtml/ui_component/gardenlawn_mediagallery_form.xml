@@ -127,26 +127,14 @@
                 </item>
             </argument>
         </button>
-        <insertListing name="gardenlawn_mediagallery_asset_link_listing">
+        <container name="asset_link_tiles_container" sortOrder="20">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="autoRender" xsi:type="boolean">true</item>
-                    <item name="dataScope" xsi:type="string">gardenlawn_mediagallery_asset_link_listing</item>
-                    <item name="externalProvider" xsi:type="string">gardenlawn_mediagallery_asset_link_listing.gardenlawn_mediagallery_asset_link_listing_data_source</item>
-                    <item name="selectionsProvider" xsi:type="string">gardenlawn_mediagallery_asset_link_listing.gardenlawn_mediagallery_asset_link_listing.gardenlawn_mediagallery_asset_link_columns.ids</item>
-                    <item name="ns" xsi:type="string">gardenlawn_mediagallery_asset_link_listing</item>
-                    <item name="render_url" xsi:type="url" path="mui/index/render"/>
-                    <item name="realTimeLink" xsi:type="boolean">true</item>
-                    <item name="behaviourType" xsi:type="string">simple</item>
-                    <item name="externalFilterMode" xsi:type="boolean">true</item>
-                    <item name="imports" xsi:type="array">
-                        <item name="params.gallery_id" xsi:type="string">${ $.provider }:data.id</item>
-                    </item>
-                    <item name="exports" xsi:type="array">
-                        <item name="params.gallery_id" xsi:type="string">${ $.provider }:data.id</item>
-                    </item>
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="template" xsi:type="string">ui/form/components/html</item> <!-- Dodane -->
+                    <item name="content" xsi:type="string">gardenlawn.gallery.assetlink.tiles</item>
                 </item>
             </argument>
-        </insertListing>
+        </container>
     </fieldset>
 </form>
