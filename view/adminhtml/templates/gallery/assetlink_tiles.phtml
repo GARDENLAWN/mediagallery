@@ -1,0 +1,58 @@
+<?php
+/** @var Tiles $block */
+
+use GardenLawn\MediaGallery\Block\Adminhtml\AssetLink\Tiles;
+
+$galleryId = $block->getCurrentGalleryId();
+?>
+<div id="asset-link-tile-component" class="gallery-tiles-container" data-mage-init='{"assetLinkTileComponent": <?= /* @noEscape */ $block->getJsConfig() ?>}'>
+
+    <div class="gallery-toolbar">
+        <div class="gallery-search">
+            <input type="text" id="asset-link-search-input" class="admin__control-text" placeholder="<?= $block->escapeHtmlAttr(__('Search by title/path...')) ?>"/>
+        </div>
+        <div class="gallery-actions">
+            <?php if ($galleryId): ?>
+                <button onclick="location.href = '<?= $block->escapeUrl($block->getAddNewAssetLinkUrl($galleryId)) ?>'" class="action-primary">
+                    <?= $block->escapeHtml(__('Add New Asset Linkkkk')) ?>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div id="asset-link-tiles-grid" class="gallery-tiles-grid">
+        <?php foreach ($block->getAssetLinksData() as $assetLink): ?>
+            <div class="gallery-tile" data-id="<?= $block->escapeHtmlAttr($assetLink['id']) ?>" data-enabled="<?= (int)$assetLink['enabled'] ?>" data-sort-order="<?= $block->escapeHtmlAttr($assetLink['sort_order']) ?>">
+                <div class="drag-handle" title="<?= $block->escapeHtmlAttr(__('Drag to reorder')) ?>"></div>
+
+                <div class="tile-status-indicator" title="<?= $assetLink['enabled'] ? $block->escapeHtmlAttr(__('Enabled')) : $block->escapeHtmlAttr(__('Disabled')) ?>"></div>
+
+                <div class="tile-actions-toggle" title="<?= $block->escapeHtmlAttr(__('Actions')) ?>"></div>
+                <div class="tile-actions-dropdown">
+                    <a href="#" class="action-toggle-status">
+                        <span><?= $assetLink['enabled'] ? $block->escapeHtml(__('Disable')) : $block->escapeHtml(__('Enable')) ?></span>
+                    </a>
+                    <a href="<?= $block->escapeUrl($assetLink['edit_url']) ?>">
+                        <span><?= $block->escapeHtml(__('Edit')) ?></span>
+                    </a>
+                    <a href="#" class="action-delete">
+                        <span><?= $block->escapeHtml(__('Delete')) ?></span>
+                    </a>
+                </div>
+
+                <a href="<?= $block->escapeUrl($assetLink['edit_url']) ?>" class="tile-link">
+                    <div class="tile-image-wrapper">
+                        <img src="<?= $block->escapeUrl($assetLink['thumbnail']) ?>" alt="<?= $block->escapeHtmlAttr($assetLink['title']) ?>" loading="lazy" />
+                    </div>
+                    <div class="tile-info">
+                        <span class="tile-name"><?= $block->escapeHtml($assetLink['title']) ?></span>
+                        <span class="tile-asset-id">Asset ID: <?= $block->escapeHtml($assetLink['asset_id']) ?></span>
+                    </div>
+                </a>
+            </div>
+        <?php endforeach; ?>
+        <div id="no-results-message" class="no-results-message" style="display: none;">
+            <?= $block->escapeHtml(__('No asset links found.')) ?>
+        </div>
+    </div>
+</div>

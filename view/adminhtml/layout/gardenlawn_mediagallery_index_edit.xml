@@ -1,9 +1,12 @@
 <?xml version="1.0"?>
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
-    <update handle="editor"/>
+    <head>
+        <css src="GardenLawn_MediaGallery::css/gallery-tiles.css"/>
+    </head>
     <body>
         <referenceContainer name="content">
             <uiComponent name="gardenlawn_mediagallery_form"/>
+            <block class="GardenLawn\MediaGallery\Block\Adminhtml\AssetLink\Tiles" name="gardenlawn.gallery.assetlink.tiles" template="GardenLawn_MediaGallery::gallery/assetlink_tiles.phtml"/>
         </referenceContainer>
     </body>
 </page>

@@ -5,7 +5,7 @@
         <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
                 comment="ID"/>
         <column xsi:type="text" name="name" nullable="true" comment="Name"/>
-        <column xsi:type="int" name="sortorder" unsigned="true" nullable="false" identity="false" default="0" comment="SortOrder"/>
+        <column xsi:type="int" name="sort_order" unsigned="true" nullable="false" identity="false" default="0" comment="SortOrder"/>
         <column xsi:type="boolean" name="enabled" nullable="false" default="1" comment="Enabled"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>

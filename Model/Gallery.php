@@ -56,7 +56,7 @@ class Gallery extends AbstractModel implements GalleryInterface
      */
     public function getSortOrder(): int
     {
-        return (int)$this->getData(self::SORTORDER);
+        return (int)$this->getData(self::SORT_ORDER);
     }
 
     /**
@@ -64,7 +64,7 @@ class Gallery extends AbstractModel implements GalleryInterface
      */
     public function setSortOrder(int $sortOrder): GalleryInterface
     {
-        return $this->setData(self::SORTORDER, $sortOrder);
+        return $this->setData(self::SORT_ORDER, $sortOrder);
     }
 
     /**

@@ -4,7 +4,6 @@ namespace GardenLawn\MediaGallery\Cron;
 use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
-use Magento\Framework\DB\Expression;
 
 class LinkAssets
 {
@@ -41,7 +40,7 @@ class LinkAssets
             $selectMaxSortOrders = $connection->select()
                 ->from(
                     $linkTable,
-                    ['gallery_id', new Expression('MAX(sort_order)')]
+                    ['gallery_id', 'MAX(sort_order)']
                 )
                 ->group('gallery_id');
             $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders); // Zwraca [gallery_id => max_sort_order]

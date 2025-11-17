@@ -12,24 +12,16 @@ use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Zend_Db_Expr;
 
-/**
- * Grid collection that is compatible with Magento UI DataProvider
- * by implementing SearchResultInterface via UiSearchResult base class.
- */
 class Collection extends UiSearchResult
 {
-    /**
-     * Collection for UI grid. Provide required constructor args to UiSearchResult
-     * to ensure main table is set and prevent empty table name SQL errors.
-     * @throws LocalizedException
-     */
+    private bool $assetCountJoined = false;
+
     public function __construct(
         EntityFactory $entityFactory,
         Logger $logger,
         FetchStrategy $fetchStrategy,
         EventManager $eventManager
     ) {
-        // Pass main table, resource model and identifier to parent constructor
         parent::__construct(
             $entityFactory,
             $logger,
@@ -41,25 +33,45 @@ class Collection extends UiSearchResult
         );
     }
 
-    /**
-     * Initialize select object
-     *
-     * @return void
-     */
     protected function _initSelect(): void
     {
         parent::_initSelect();
-        $this->getSelect()->joinLeft(
-            ['asset_link' => $this->getTable('gardenlawn_mediagallery_asset_link')],
-            'main_table.id = asset_link.gallery_id',
-            []
-        )->columns(
-            [
-                'asset_count' => new Zend_Db_Expr('COUNT(asset_link.asset_id)')
-            ]
-        )->group('main_table.id');
-
-        // Map 'id' to 'main_table.id' to resolve ambiguity in WHERE clauses
         $this->addFilterToMap('id', 'main_table.id');
+        $this->addFilterToMap('enabled', 'main_table.enabled');
+    }
+
+    /**
+     * Joins the asset link table to count associated assets for each gallery.
+     *
+     * @return $this
+     */
+    public function joinAssetCount(): self
+    {
+        if (!$this->assetCountJoined) {
+            $this->getSelect()->joinLeft(
+                ['asset_link' => $this->getTable('gardenlawn_mediagallery_asset_link')],
+                'main_table.id = asset_link.gallery_id',
+                []
+            )->columns(
+                ['asset_count' => new Zend_Db_Expr('COUNT(DISTINCT asset_link.asset_id)')]
+            )->group('main_table.id');
+
+            $this->assetCountJoined = true;
+        }
+        return $this;
+    }
+
+    /**
+     * Overridden to apply the join before loading the collection.
+     * This is for compatibility with the UI grid.
+     */
+    protected function _beforeLoad(): Collection
+    {
+        // This logic is for the UI grid, which uses this collection directly.
+        // For our custom tile view, we call joinAssetCount() manually.
+        if (!$this->assetCountJoined) {
+             $this->joinAssetCount();
+        }
+        return parent::_beforeLoad();
     }
 }

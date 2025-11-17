@@ -4,5 +4,9 @@
         <route id="gardenlawn_mediagallery" frontName="gardenlawn_mediagallery">
             <module name="GardenLawn_MediaGallery" before="Magento_Backend" />
         </route>
+        <!-- Add routes for AssetLink CRUD operations -->
+        <route id="gardenlawn_mediagallery_assetlink" frontName="gardenlawn_mediagallery_assetlink">
+            <module name="GardenLawn_MediaGallery" before="Magento_Backend" />
+        </route>
     </router>
 </config>

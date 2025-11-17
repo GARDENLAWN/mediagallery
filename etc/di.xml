@@ -45,4 +45,18 @@
             </argument>
         </arguments>
     </virtualType>
+
+    <!-- AssetLink Form DataProvider -->
+    <virtualType name="gardenlawn_mediagallery_asset_link_form_data_source" type="GardenLawn\MediaGallery\Model\AssetLink\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Collection</argument>
+            <argument name="primaryFieldName" xsi:type="string">id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- AssetLink Repository Configuration -->
+    <preference for="GardenLawn\MediaGallery\Api\AssetLinkRepositoryInterface" type="GardenLawn\MediaGallery\Model\AssetLinkRepository" />
+    <preference for="GardenLawn\MediaGallery\Api\Data\AssetLinkInterface" type="GardenLawn\MediaGallery\Model\AssetLink" />
+    <preference for="GardenLawn\MediaGallery\Api\Data\AssetLinkSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
 </config>
