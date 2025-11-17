@@ -10,14 +10,14 @@ interface AssetLinkSearchResultsInterface extends SearchResultsInterface
     /**
      * Get asset links list.
      *
-     * @return \GardenLawn\MediaGallery\Api\Data\AssetLinkInterface[]
+     * @return AssetLinkInterface[]
      */
     public function getItems(): array;
 
     /**
      * Set asset links list.
      *
-     * @param \GardenLawn\MediaGallery\Api\Data\AssetLinkInterface[] $items
+     * @param AssetLinkInterface[] $items
      * @return $this
      */
     public function setItems(array $items): self;

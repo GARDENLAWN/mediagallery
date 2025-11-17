@@ -65,10 +65,9 @@ class Tiles extends Template
             return [];
         }
 
-        /** @var AssetLinkCollection $assetLinks */
         $assetLinks = $this->assetLinkCollectionFactory->create();
         $assetLinks->addFieldToFilter('gallery_id', $galleryId)
-            ->setOrder('sortorder', 'ASC');
+            ->setOrder('sort_order', 'ASC');
 
         $this->logger->info('AssetLink Tiles Block: Collection SQL: ' . $assetLinks->getSelect()->__toString());
         $this->logger->info('AssetLink Tiles Block: Collection size for gallery ' . $galleryId . ': ' . $assetLinks->getSize());
@@ -83,7 +82,7 @@ class Tiles extends Template
                 'asset_id' => (int)$assetLink->getAssetId(),
                 'title' => $assetLink->getData('title') ?: $assetLink->getData('path'),
                 'enabled' => (bool)$assetLink->getEnabled(),
-                'sortorder' => (int)$assetLink->getSortOrder(),
+                'sort_order' => (int)$assetLink->getSortOrder(),
                 'thumbnail' => $path ? $this->getMediaUrl() . $path : $this->getPlaceholderImage(),
                 'edit_url' => $this->getEditUrl((int)$assetLink->getId(), (int)$assetLink->getGalleryId()),
                 'delete_url' => $this->getDeleteUrl((int)$assetLink->getId(), (int)$assetLink->getGalleryId())

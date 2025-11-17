@@ -85,7 +85,7 @@
                 </item>
             </argument>
         </field>
-        <field name="sortorder">
+        <field name="sort_order">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="dataType" xsi:type="string">number</item>

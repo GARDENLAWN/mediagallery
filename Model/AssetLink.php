@@ -33,7 +33,7 @@ class AssetLink extends AbstractModel implements AssetLinkInterface
     /**
      * Set gallery ID
      *
-     * @param int $galleryId
+     * @param $id
      * @return AssetLinkInterface
      */
     public function setId($id): AssetLinkInterface

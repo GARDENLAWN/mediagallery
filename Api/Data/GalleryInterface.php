@@ -10,7 +10,7 @@ interface GalleryInterface
      */
     public const string ID = 'id';
     public const string NAME = 'name';
-    public const string SORTORDER = 'sortorder';
+    public const string SORT_ORDER = 'sort_order';
     public const string ENABLED = 'enabled';
 
     /**

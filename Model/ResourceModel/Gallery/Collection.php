@@ -65,7 +65,7 @@ class Collection extends UiSearchResult
      * Overridden to apply the join before loading the collection.
      * This is for compatibility with the UI grid.
      */
-    protected function _beforeLoad()
+    protected function _beforeLoad(): Collection
     {
         // This logic is for the UI grid, which uses this collection directly.
         // For our custom tile view, we call joinAssetCount() manually.

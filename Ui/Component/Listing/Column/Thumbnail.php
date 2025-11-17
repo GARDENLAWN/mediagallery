@@ -67,7 +67,7 @@ class Thumbnail extends Column
                 $galleryId = $item['id'];
                 $assetLinkCollection = $this->assetLinkCollectionFactory->create();
                 $assetLinkCollection->addFieldToFilter('gallery_id', $galleryId)
-                    ->setOrder('sortorder', 'ASC')
+                    ->setOrder('sort_order', 'ASC')
                     ->setPageSize(1);
 
                 $firstAsset = $assetLinkCollection->getFirstItem();

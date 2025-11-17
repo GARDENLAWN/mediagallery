@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace GardenLawn\MediaGallery\Api;
 
 use GardenLawn\MediaGallery\Api\Data\AssetLinkInterface;
+use GardenLawn\MediaGallery\Api\Data\AssetLinkSearchResultsInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -33,10 +34,10 @@ interface AssetLinkRepositoryInterface
      * Retrieve AssetLink matching the specified criteria.
      *
      * @param SearchCriteriaInterface $searchCriteria
-     * @return \GardenLawn\MediaGallery\Api\Data\AssetLinkSearchResultsInterface
+     * @return AssetLinkSearchResultsInterface
      * @throws LocalizedException
      */
-    public function getList(SearchCriteriaInterface $searchCriteria): \GardenLawn\MediaGallery\Api\Data\AssetLinkSearchResultsInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): AssetLinkSearchResultsInterface;
 
     /**
      * Delete AssetLink.

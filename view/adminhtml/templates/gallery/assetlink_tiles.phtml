@@ -22,7 +22,7 @@ $galleryId = $block->getCurrentGalleryId();
 
     <div id="asset-link-tiles-grid" class="gallery-tiles-grid">
         <?php foreach ($block->getAssetLinksData() as $assetLink): ?>
-            <div class="gallery-tile" data-id="<?= $block->escapeHtmlAttr($assetLink['id']) ?>" data-enabled="<?= (int)$assetLink['enabled'] ?>" data-sort-order="<?= $block->escapeHtmlAttr($assetLink['sortorder']) ?>">
+            <div class="gallery-tile" data-id="<?= $block->escapeHtmlAttr($assetLink['id']) ?>" data-enabled="<?= (int)$assetLink['enabled'] ?>" data-sort-order="<?= $block->escapeHtmlAttr($assetLink['sort_order']) ?>">
                 <div class="drag-handle" title="<?= $block->escapeHtmlAttr(__('Drag to reorder')) ?>"></div>
 
                 <div class="tile-status-indicator" title="<?= $assetLink['enabled'] ? $block->escapeHtmlAttr(__('Enabled')) : $block->escapeHtmlAttr(__('Disabled')) ?>"></div>

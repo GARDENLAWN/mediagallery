@@ -86,14 +86,14 @@
                 </item>
             </argument>
         </field>
-        <field name="sortorder">
+        <field name="sort_order">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="dataType" xsi:type="string">number</item>
                     <item name="label" xsi:type="string" translate="true">Sort Order</item>
                     <item name="formElement" xsi:type="string">input</item>
                     <item name="source" xsi:type="string">asset_link</item>
-                    <item name="dataScope" xsi:type="string">sortorder</item>
+                    <item name="dataScope" xsi:type="string">sort_order</item>
                 </item>
             </argument>
         </field>

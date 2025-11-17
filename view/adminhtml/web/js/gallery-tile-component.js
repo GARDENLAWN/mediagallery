@@ -48,7 +48,7 @@ define([
             this.grid.children('.gallery-tile').each(function (index) {
                 newOrder.push({
                     id: $(this).data('id'),
-                    sortorder: index + 1
+                    sort_order: index + 1
                 });
             });
 

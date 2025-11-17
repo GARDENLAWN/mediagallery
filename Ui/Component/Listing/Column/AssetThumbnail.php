@@ -37,7 +37,7 @@ class AssetThumbnail extends Column
      *
      * Uses 'path' column from the data set to build full media URLs.
      */
-    public function prepareDataSource(array $dataSource)
+    public function prepareDataSource(array $dataSource): array
     {
         if (!isset($dataSource['data']['items'])) {
             return $dataSource;

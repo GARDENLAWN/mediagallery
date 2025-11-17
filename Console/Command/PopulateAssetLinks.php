@@ -115,7 +115,7 @@ class PopulateAssetLinks extends Command
         $galleriesToInsert = [];
         foreach ($uniqueDirectoryPaths as $path) {
             if (!isset($existingGalleryNames[$path])) {
-                $galleriesToInsert[] = ['name' => $path, 'enabled' => 1, 'sortorder' => 0];
+                $galleriesToInsert[] = ['name' => $path, 'enabled' => 1, 'sort_order' => 0];
             }
         }
 
@@ -152,7 +152,7 @@ class PopulateAssetLinks extends Command
 
         $totalLinksInserted = 0;
 
-        $selectMaxSortOrders = $connection->select()->from($linkTable, ['gallery_id', 'MAX(sortorder)'])->group('gallery_id');
+        $selectMaxSortOrders = $connection->select()->from($linkTable, ['gallery_id', 'MAX(sort_order)'])->group('gallery_id');
         $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders);
 
         foreach ($galleries as $gallery) {
@@ -186,7 +186,7 @@ class PopulateAssetLinks extends Command
                     $linksToInsert[] = [
                         'gallery_id' => $galleryId,
                         'asset_id' => (int)$asset['id'],
-                        'sortorder' => $currentSortOrder++,
+                        'sort_order' => $currentSortOrder++,
                         'enabled' => 1
                     ];
                 }

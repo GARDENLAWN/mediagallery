@@ -53,7 +53,7 @@ class SaveOrder extends Action
         try {
             foreach ($orderData as $item) {
                 $gallery = $this->galleryRepository->getById((int)$item['id']);
-                $gallery->setSortorder((int)$item['sortorder']);
+                $gallery->setSortOrder((int)$item['sort_order']);
                 $this->galleryRepository->save($gallery);
             }
             return $result->setData(['error' => false, 'message' => __('Order has been saved.')]);

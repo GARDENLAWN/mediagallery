@@ -43,7 +43,7 @@ class Tiles extends Template
      */
     public function getGalleriesData(): array
     {
-        $galleries = $this->galleryCollectionFactory->create()->setOrder('sortorder', 'ASC');
+        $galleries = $this->galleryCollectionFactory->create()->setOrder('sort_order', 'ASC');
         $galleries->joinAssetCount();
 
         $galleriesData = [];
@@ -51,7 +51,7 @@ class Tiles extends Template
         foreach ($galleries as $gallery) {
             $assetLinkCollection = $this->assetLinkCollectionFactory->create();
             $assetLinkCollection->addFieldToFilter('gallery_id', $gallery->getId())
-                ->setOrder('sortorder', 'ASC')
+                ->setOrder('sort_order', 'ASC')
                 ->setPageSize(1);
 
             $firstAsset = $assetLinkCollection->getFirstItem();

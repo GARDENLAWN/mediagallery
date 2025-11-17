@@ -72,7 +72,7 @@ class Save extends Action implements HttpPostActionInterface
 
                 $assetLink->setGalleryId($galleryId);
                 $assetLink->setAssetId((int)$data['asset_id']);
-                $assetLink->setSortOrder((int)($data['sortorder'] ?? 0));
+                $assetLink->setSortOrder((int)($data['sort_order'] ?? 0));
                 $assetLink->setEnabled((bool)($data['enabled'] ?? false));
 
                 $this->assetLinkRepository->save($assetLink);

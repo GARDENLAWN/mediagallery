@@ -5,18 +5,18 @@ namespace GardenLawn\MediaGallery\Api\Data;
 
 interface AssetLinkInterface
 {
-    public const ID = 'id';
-    public const GALLERY_ID = 'gallery_id';
-    public const ASSET_ID = 'asset_id';
-    public const SORT_ORDER = 'sortorder';
-    public const ENABLED = 'enabled';
+    public const string ID = 'id';
+    public const string GALLERY_ID = 'gallery_id';
+    public const string ASSET_ID = 'asset_id';
+    public const string SORT_ORDER = 'sort_order';
+    public const string ENABLED = 'enabled';
 
     /**
      * Get ID
      *
      * @return int|null
      */
-    public function getId();
+    public function getId(): ?int;
 
     /**
      * Set ID
