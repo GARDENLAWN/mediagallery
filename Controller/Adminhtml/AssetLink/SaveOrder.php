@@ -66,7 +66,7 @@ class SaveOrder extends Action implements HttpPostActionInterface
         try {
             foreach ($orderData as $item) {
                 $assetLinkId = (int)$item['id'];
-                $sortOrder = (int)$item['sort_order'];
+                $sortOrder = (int)$item['sortorder'];
 
                 $assetLink = $this->assetLinkRepository->getById($assetLinkId);
                 // Ensure the asset link belongs to the current gallery

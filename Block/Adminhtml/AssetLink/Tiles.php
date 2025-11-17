@@ -12,13 +12,15 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Registry;
+use Psr\Log\LoggerInterface;
 
 class Tiles extends Template
 {
     protected AssetLinkCollectionFactory $assetLinkCollectionFactory;
     protected StoreManagerInterface $storeManager;
     private Json $jsonSerializer;
-    private Registry $registry;
+    private Registry $registry; // Keep registry for other potential uses, but not for gallery ID here
+    private LoggerInterface $logger;
 
     public function __construct(
         Context $context,
@@ -26,24 +28,27 @@ class Tiles extends Template
         StoreManagerInterface $storeManager,
         Json $jsonSerializer,
         Registry $registry,
+        LoggerInterface $logger,
         array $data = []
     ) {
         $this->assetLinkCollectionFactory = $assetLinkCollectionFactory;
         $this->storeManager = $storeManager;
         $this->jsonSerializer = $jsonSerializer;
         $this->registry = $registry;
+        $this->logger = $logger;
         parent::__construct($context, $data);
     }
 
     /**
-     * Get current gallery ID from registry.
+     * Get current gallery ID from the request.
      *
      * @return int|null
      */
     public function getCurrentGalleryId(): ?int
     {
-        $gallery = $this->registry->registry('gardenlawn_mediagallery_gallery');
-        return $gallery ? (int)$gallery->getId() : null;
+        $galleryId = (int)$this->getRequest()->getParam('id'); // Get 'id' from the request parameters
+        $this->logger->info('AssetLink Tiles Block: Retrieved gallery ID from request: ' . ($galleryId ?? 'null'));
+        return $galleryId ?: null; // Return null if ID is 0
     }
 
     /**
@@ -56,42 +61,52 @@ class Tiles extends Template
     {
         $galleryId = $this->getCurrentGalleryId();
         if (!$galleryId) {
+            $this->logger->warning('AssetLink Tiles Block: No gallery ID found, returning empty data.');
             return [];
         }
 
         /** @var AssetLinkCollection $assetLinks */
         $assetLinks = $this->assetLinkCollectionFactory->create();
         $assetLinks->addFieldToFilter('gallery_id', $galleryId)
-            ->setOrder('sort_order', 'ASC');
+            ->setOrder('sortorder', 'ASC');
+
+        $this->logger->info('AssetLink Tiles Block: Collection SQL: ' . $assetLinks->getSelect()->__toString());
+        $this->logger->info('AssetLink Tiles Block: Collection size for gallery ' . $galleryId . ': ' . $assetLinks->getSize());
 
         $assetLinksData = [];
 
         foreach ($assetLinks as $assetLink) {
-            $path = $assetLink->getData('path'); // Path is joined in AssetLinkCollection
+            $path = $assetLink->getData('path');
             $assetLinksData[] = [
                 'id' => (int)$assetLink->getId(),
                 'gallery_id' => (int)$assetLink->getGalleryId(),
                 'asset_id' => (int)$assetLink->getAssetId(),
-                'title' => $assetLink->getData('title') ?: $assetLink->getData('path'), // Use path as fallback
+                'title' => $assetLink->getData('title') ?: $assetLink->getData('path'),
                 'enabled' => (bool)$assetLink->getEnabled(),
-                'sort_order' => (int)$assetLink->getSortOrder(),
+                'sortorder' => (int)$assetLink->getSortOrder(),
                 'thumbnail' => $path ? $this->getMediaUrl() . $path : $this->getPlaceholderImage(),
                 'edit_url' => $this->getEditUrl((int)$assetLink->getId(), (int)$assetLink->getGalleryId()),
                 'delete_url' => $this->getDeleteUrl((int)$assetLink->getId(), (int)$assetLink->getGalleryId())
             ];
         }
 
+        $this->logger->info('AssetLink Tiles Block: Prepared ' . count($assetLinksData) . ' asset links for rendering.');
+
         return $assetLinksData;
     }
 
     public function getMediaUrl(): string
     {
-        return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+        try {
+            return $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+        } catch (\Exception $e) {
+            $this->logger->error('AssetLink Tiles Block: Error getting media URL: ' . $e->getMessage());
+            return '';
+        }
     }
 
     public function getPlaceholderImage(): string
     {
-        // Use a generic placeholder or a specific one for asset links
         return $this->getViewFileUrl('Magento_Catalog/images/product/placeholder/thumbnail.jpg');
     }
 
@@ -112,14 +127,12 @@ class Tiles extends Template
 
     public function getSaveOrderUrl(): string
     {
-        // This URL will be used if we implement drag-and-drop sorting for asset links
-        return $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/saveorder'); // Need to create this controller action
+        return $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/saveorder');
     }
 
     public function getToggleStatusUrl(): string
     {
-        // This URL will be used if we implement toggle status for asset links
-        return $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/togglestatus'); // Need to create this controller action
+        return $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/togglestatus');
     }
 
     /**
@@ -132,10 +145,11 @@ class Tiles extends Template
         $config = [
             'saveOrderUrl' => $this->getSaveOrderUrl(),
             'toggleStatusUrl' => $this->getToggleStatusUrl(),
-            'deleteUrl' => $this->getDeleteUrl(0, 0), // Placeholder, actual ID will be passed from JS
+            'deleteUrl' => $this->getDeleteUrl(0, 0),
             'formKey' => $this->getFormKey(),
             'currentGalleryId' => $this->getCurrentGalleryId()
         ];
+        $this->logger->info('AssetLink Tiles Block: Generated JS config: ' . $this->jsonSerializer->serialize($config));
         return $this->jsonSerializer->serialize($config);
     }
 }
