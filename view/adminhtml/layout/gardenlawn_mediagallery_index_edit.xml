@@ -6,7 +6,6 @@
     <body>
         <referenceContainer name="content">
             <uiComponent name="gardenlawn_mediagallery_form"/>
-            <!-- Add AssetLink Tiles block here -->
             <block class="GardenLawn\MediaGallery\Block\Adminhtml\AssetLink\Tiles" name="gardenlawn.gallery.assetlink.tiles" template="GardenLawn_MediaGallery::gallery/assetlink_tiles.phtml"/>
         </referenceContainer>
     </body>
