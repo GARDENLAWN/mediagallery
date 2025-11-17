@@ -7,6 +7,8 @@ use GardenLawn\MediaGallery\Api\AssetLinkRepositoryInterface;
 use GardenLawn\MediaGallery\Api\Data\AssetLinkInterfaceFactory;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Redirect;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Registry;
 use Magento\Framework\View\Result\Page;
@@ -14,7 +16,7 @@ use Magento\Framework\View\Result\PageFactory;
 
 class Edit extends Action
 {
-    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
+    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
 
     /**
      * @var PageFactory
@@ -44,12 +46,13 @@ class Edit extends Action
      * @param Registry $registry
      */
     public function __construct(
-        Context $context,
-        PageFactory $resultPageFactory,
+        Context                      $context,
+        PageFactory                  $resultPageFactory,
         AssetLinkRepositoryInterface $assetLinkRepository,
-        AssetLinkInterfaceFactory $assetLinkFactory,
-        Registry $registry
-    ) {
+        AssetLinkInterfaceFactory    $assetLinkFactory,
+        Registry                     $registry
+    )
+    {
         $this->resultPageFactory = $resultPageFactory;
         $this->assetLinkRepository = $assetLinkRepository;
         $this->assetLinkFactory = $assetLinkFactory;
@@ -60,9 +63,10 @@ class Edit extends Action
     /**
      * Edit AssetLink action
      *
-     * @return Page
+     * @return Redirect|Page
+     * @throws LocalizedException
      */
-    public function execute(): Page
+    public function execute(): Redirect|Page
     {
         $id = (int)$this->getRequest()->getParam('id');
         $galleryId = (int)$this->getRequest()->getParam('gallery_id');
@@ -73,7 +77,7 @@ class Edit extends Action
                 $assetLink = $this->assetLinkRepository->getById($id);
             } catch (NoSuchEntityException $e) {
                 $this->messageManager->addErrorMessage(__('This asset link no longer exists.'));
-                /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+                /** @var Redirect $resultRedirect */
                 $resultRedirect = $this->resultRedirectFactory->create();
                 return $resultRedirect->setPath('*/*/'); // Redirect to gallery listing
             }
@@ -83,7 +87,6 @@ class Edit extends Action
 
         $this->registry->register('gardenlawn_mediagallery_asset_link', $assetLink);
 
-        /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('GardenLawn_MediaGallery::items');
         $resultPage->getConfig()->getTitle()->prepend(

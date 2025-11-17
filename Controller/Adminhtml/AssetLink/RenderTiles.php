@@ -6,6 +6,7 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\AssetLink;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\Registry;
 use Magento\Framework\View\LayoutFactory;
@@ -14,7 +15,7 @@ use Psr\Log\LoggerInterface;
 
 class RenderTiles extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::items';
+    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::items';
 
     /**
      * @var RawFactory
@@ -60,9 +61,9 @@ class RenderTiles extends Action implements HttpGetActionInterface
     /**
      * Render asset link tiles.
      *
-     * @return \Magento\Framework\Controller\Result\Raw
+     * @return Raw
      */
-    public function execute(): \Magento\Framework\Controller\Result\Raw
+    public function execute(): Raw
     {
         $galleryId = (int)$this->getRequest()->getParam('gallery_id');
         $this->logger->info('RenderTiles Controller: Received gallery_id: ' . $galleryId);

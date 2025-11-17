@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
@@ -73,7 +74,7 @@ class Save extends Action
                     return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId(), '_current' => true]);
                 }
                 return $resultRedirect->setPath('*/*/');
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
                 $this->logger->error('Error saving gallery', ['exception' => $e]);
                 return $resultRedirect->setPath('*/*/edit', ['id' => $this->getRequest()->getParam('id')]);

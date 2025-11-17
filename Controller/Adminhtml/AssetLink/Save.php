@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
 
 class Save extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
+    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
 
     /**
      * @var AssetLinkRepositoryInterface

@@ -7,6 +7,7 @@ use GardenLawn\MediaGallery\Api\AssetLinkRepositoryInterface;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -14,7 +15,7 @@ use Psr\Log\LoggerInterface;
 
 class ToggleStatus extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
+    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::asset_link_save';
 
     /**
      * @var JsonFactory
@@ -52,9 +53,9 @@ class ToggleStatus extends Action implements HttpPostActionInterface
     /**
      * Toggle status for an asset link.
      *
-     * @return \Magento\Framework\Controller\Result\Json
+     * @return Json
      */
-    public function execute(): \Magento\Framework\Controller\Result\Json
+    public function execute(): Json
     {
         $result = $this->resultJsonFactory->create();
         $assetLinkId = (int)$this->getRequest()->getParam('id');
@@ -68,7 +69,7 @@ class ToggleStatus extends Action implements HttpPostActionInterface
         try {
             $assetLink = $this->assetLinkRepository->getById($assetLinkId);
             // Ensure the asset link belongs to the current gallery
-            if ((int)$assetLink->getGalleryId() !== $galleryId) {
+            if ($assetLink->getGalleryId() !== $galleryId) {
                 throw new LocalizedException(__('The asset link does not belong to this gallery.'));
             }
             $assetLink->setEnabled((bool)$status);

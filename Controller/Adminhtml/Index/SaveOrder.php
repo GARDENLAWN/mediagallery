@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\Json;
@@ -58,7 +59,7 @@ class SaveOrder extends Action
             return $result->setData(['error' => false, 'message' => __('Order has been saved.')]);
         } catch (LocalizedException $e) {
             return $result->setData(['error' => true, 'message' => $e->getMessage()]);
-        } catch (\Exception $e) {
+        } catch (Exception) {
             return $result->setData(['error' => true, 'message' => __('An error occurred while saving the order.')]);
         }
     }

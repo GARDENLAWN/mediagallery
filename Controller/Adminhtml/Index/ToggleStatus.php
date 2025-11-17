@@ -3,10 +3,14 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
 
 class ToggleStatus extends Action
@@ -24,7 +28,7 @@ class ToggleStatus extends Action
         $this->galleryRepository = $galleryRepository;
     }
 
-    public function execute()
+    public function execute(): Json|ResultInterface|ResponseInterface
     {
         $result = $this->resultJsonFactory->create();
         $galleryId = (int)$this->getRequest()->getParam('id');
@@ -41,7 +45,7 @@ class ToggleStatus extends Action
             return $result->setData(['error' => false, 'message' => __('Status has been updated.')]);
         } catch (LocalizedException $e) {
             return $result->setData(['error' => true, 'message' => $e->getMessage()]);
-        } catch (\Exception $e) {
+        } catch (Exception) {
             return $result->setData(['error' => true, 'message' => __('An error occurred while updating the status.')]);
         }
     }
