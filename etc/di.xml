@@ -5,6 +5,7 @@
             <argument name="commands" xsi:type="array">
                 <item name="gardenlawn_populate_asset_links" xsi:type="object">GardenLawn\MediaGallery\Console\Command\PopulateAssetLinks</item>
                 <item name="gardenlawn_sync_s3_assets" xsi:type="object">GardenLawn\MediaGallery\Console\Command\SyncS3Assets</item>
+                <item name="gardenlawn_deduplicate_assets" xsi:type="object">GardenLawn\MediaGallery\Console\Command\DeduplicateAssets</item>
             </argument>
         </arguments>
     </type>

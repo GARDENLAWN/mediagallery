@@ -1,22 +1,19 @@
 <?php
 namespace GardenLawn\MediaGallery\Model;
 
-use Exception;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
-use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
 class S3AssetSynchronizer
 {
-    const string CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
-    const string CONFIG_PATH_REGION = 'remote_storage/config/region';
-    const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
-    const string CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
-    const string CONFIG_PATH_PREFIX = 'remote_storage/prefix';
-    const string MEDIA_DIR = 'media';
+    const CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
+    const CONFIG_PATH_REGION = 'remote_storage/config/region';
+    const CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
+    const CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
+    const CONFIG_PATH_PREFIX = 'remote_storage/prefix';
+    const MEDIA_DIR = 'media';
 
     protected ResourceConnection $resourceConnection;
     protected DeploymentConfig $deploymentConfig;
@@ -33,38 +30,30 @@ class S3AssetSynchronizer
         $this->logger = $logger;
     }
 
-    /**
-     * @throws FileSystemException
-     * @throws RuntimeException
-     * @throws Exception
-     */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
     {
         $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
         $envPrefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
         if (empty($bucket)) {
-            throw new Exception('S3 bucket name is not configured in env.php.');
+            throw new \Exception('S3 bucket name is not configured in env.php.');
         }
         $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
 
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
-        $dbAssets = $this->getExistingDbAssets();
+        $dbAssets = $this->getExistingDbAssets(); // Correctly fetched assets by path
 
         $assetsToInsert = [];
         $assetsToUpdate = [];
         $assetsToDelete = [];
 
-        // --- Main processing loop ---
         foreach ($s3Files as $path => $s3Data) {
             if (!isset($dbAssets[$path])) {
-                // Case 1: New asset, needs to be inserted
                 $assetsToInsert[] = $this->prepareAssetData($path, $s3Data, $bucket, $s3MediaPrefix);
             } elseif ($forceUpdate) {
-                // Case 2: Existing asset, check if it needs an update
                 $dbAsset = $dbAssets[$path];
                 if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Data['hash']) {
                     $updateData = $this->prepareAssetData($path, $s3Data, $bucket, $s3MediaPrefix);
-                    $updateData['id'] = $dbAsset['id']; // Important: keep the ID for the update
+                    $updateData['id'] = $dbAsset['id'];
                     $assetsToUpdate[] = $updateData;
                 }
             }
@@ -74,7 +63,6 @@ class S3AssetSynchronizer
             $assetsToDelete = $this->findOrphanedAssets(array_keys($s3Files), $dbAssets);
         }
 
-        // --- Database operations ---
         if (!$dryRun) {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $connection->getTableName('media_gallery_asset');
@@ -87,11 +75,11 @@ class S3AssetSynchronizer
                 try {
                     foreach ($assetsToUpdate as $asset) {
                         $id = $asset['id'];
-                        unset($asset['id']); // Don't try to update the ID itself
+                        unset($asset['id']);
                         $connection->update($tableName, $asset, ['id = ?' => $id]);
                     }
                     $connection->commit();
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $connection->rollBack();
                     throw $e;
                 }
@@ -120,11 +108,6 @@ class S3AssetSynchronizer
         return $orphanedPaths;
     }
 
-    /**
-     * @throws FileSystemException
-     * @throws RuntimeException
-     * @throws Exception
-     */
     private function getS3Client(): S3Client
     {
         if ($this->s3Client === null) {
@@ -132,7 +115,7 @@ class S3AssetSynchronizer
             $secret = $this->deploymentConfig->get(self::CONFIG_PATH_SECRET);
             $region = $this->deploymentConfig->get(self::CONFIG_PATH_REGION);
             if (!$key || !$secret || !$region) {
-                throw new Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
+                throw new \Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
             }
             $this->s3Client = new S3Client([
                 'version' => 'latest',
@@ -143,9 +126,6 @@ class S3AssetSynchronizer
         return $this->s3Client;
     }
 
-    /**
-     * @throws Exception
-     */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
@@ -155,7 +135,7 @@ class S3AssetSynchronizer
             $contents = $result->get('Contents');
             if (is_array($contents)) {
                 foreach ($contents as $object) {
-                    if (!str_ends_with($object['Key'], '/')) {
+                    if (substr($object['Key'], -1) !== '/') {
                         $path = str_starts_with($object['Key'], $prefix) ? substr($object['Key'], strlen($prefix)) : $object['Key'];
                         if (!empty($path)) {
                             $allFiles[$path] = [
@@ -170,13 +150,26 @@ class S3AssetSynchronizer
         return $allFiles;
     }
 
+    /**
+     * CORRECTED: Fetches assets and keys them by their path.
+     * It will only keep the first encountered record for a given path (implicitly the one with the lowest ID).
+     */
     private function getExistingDbAssets(): array
     {
         $connection = $this->resourceConnection->getConnection();
         $tableName = $connection->getTableName('media_gallery_asset');
         $select = $connection->select()->from($tableName, ['id', 'path', 'hash', 'width', 'height']);
-        // Returns an array like: ['path/to/file.jpg' => ['id' => 1, 'path' => ...]]
-        return $connection->fetchAssoc($select);
+        $rows = $connection->fetchAll($select);
+
+        $assetsByPath = [];
+        foreach ($rows as $row) {
+            // If a duplicate path exists in the DB, we only want to consider the first one we find.
+            // This prevents the synchronizer from getting confused by existing bad data.
+            if (!isset($assetsByPath[$row['path']])) {
+                $assetsByPath[$row['path']] = $row;
+            }
+        }
+        return $assetsByPath;
     }
 
     private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix): array
@@ -196,7 +189,7 @@ class S3AssetSynchronizer
                     $width = (int)$imageSizeInfo[0];
                     $height = (int)$imageSizeInfo[1];
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $this->logger->warning('Could not get image size for ' . $path . ': ' . $e->getMessage());
             }
         }
