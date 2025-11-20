@@ -2,6 +2,7 @@
 namespace GardenLawn\MediaGallery\Model;
 
 use Exception;
+use GardenLawn\Core\Utils\Logger;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
@@ -138,6 +139,7 @@ class S3AssetSynchronizer
 
         foreach ($paginator as $result) {
             $contents = $result->get('Contents');
+            Logger::writeLog($contents);
             if (is_array($contents)) {
                 foreach ($contents as $object) {
                     // Ignore directories
