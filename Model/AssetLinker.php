@@ -103,9 +103,7 @@ class AssetLinker
         }
 
         if (!$dryRun) {
-            // First, delete all links associated with the orphaned galleries
             $connection->delete($linkTable, ['gallery_id IN (?)' => $galleryIdsToDelete]);
-            // Then, delete the galleries themselves
             $connection->delete($galleryTable, ['id IN (?)' => $galleryIdsToDelete]);
         }
 
@@ -123,7 +121,10 @@ class AssetLinker
             $pathParts = explode('/', dirname($row['path']));
             $currentPath = '';
             foreach ($pathParts as $part) {
-                if (empty($part) || $part === '.') continue;
+                // CORRECTED: Use strict comparison to avoid '0' being treated as empty.
+                if ($part === '' || $part === '.') {
+                    continue;
+                }
                 $currentPath .= (empty($currentPath) ? '' : '/') . $part;
                 $directoryPaths[$currentPath] = true;
             }
