@@ -2,8 +2,8 @@
 
 namespace GardenLawn\MediaGallery\Cron;
 
+use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
-use Exception;
 use GardenLawn\Core\Utils\Logger;
 use GardenLawn\Core\Utils\Utils;
 use Magento\Framework\App\ResourceConnection;
@@ -12,6 +12,10 @@ use Magento\Framework\Exception\NoSuchEntityException;
 
 class AwsS3Sync
 {
+    private const string PATH_MEDIA = 'pub/media';
+    private const string PATH_MEDIA_CATALOG_PRODUCT = 'pub/media/catalog/product';
+    private const string PATH_MEDIA_GALLERY = 'pub/media/gallery';
+
     protected S3Client $s3client;
     protected AdapterInterface $connection;
     private bool $isTest = false;
@@ -22,16 +26,17 @@ class AwsS3Sync
         $this->connection = $resource->getConnection();
     }
 
-    /**
-     * @throws Exception
-     */
     public function execute(): void
     {
-        $this->moveProductImages();
-        $this->deleteTmpImages();
-        $this->mediaGalleryExecute();
-        $this->mediaGalleryExecute("pub/media/catalog/product");
-        $this->mediaGalleryExecute("pub/media/gallery");
+        try {
+            $this->moveProductImages();
+            $this->deleteTmpImages();
+            $this->mediaGalleryExecute();
+            $this->mediaGalleryExecute(self::PATH_MEDIA_CATALOG_PRODUCT);
+            $this->mediaGalleryExecute(self::PATH_MEDIA_GALLERY);
+        } catch (S3Exception $e) {
+            Logger::writeLog($e);
+        }
     }
 
     public function deleteTmpImages(): void
@@ -69,44 +74,29 @@ class AwsS3Sync
 
     public function getMediaFiles(string $prefix): array
     {
-        $contents = $this->s3client->listObjectsV2([
-            'Bucket' => Utils::Bucket,
-            'Prefix' => $prefix
-        ]);
+        $allFiles = [];
+        $continuationToken = null;
 
-        $dirs = [];
-        $dirs [] = $prefix;
-
-        if ($contents['Contents'] != null) {
-            foreach ($contents['Contents'] as $content) {
-                if (str_ends_with($content['Key'], '/')) {
-                    $dirs[] = $content['Key'];
-                }
-            }
-        }
-
-        $images = [];
-
-        foreach ($dirs as $dir) {
+        do {
             $result = $this->s3client->listObjectsV2([
                 'Bucket' => Utils::Bucket,
-                'Prefix' => $dir
+                'Prefix' => $prefix,
+                'ContinuationToken' => $continuationToken,
             ]);
 
-            if ($result['Contents'] != null) {
+            if (!empty($result['Contents'])) {
                 foreach ($result['Contents'] as $content) {
-                    $path = $content['Key'];
-                    $images[] = $path;
+                    $allFiles[] = $content['Key'];
                 }
             }
 
-            $images = array_merge($images, array_unique($images));
-        }
+            $continuationToken = $result['NextContinuationToken'] ?? null;
+        } while ($continuationToken);
 
-        return array_unique($images);
+        return array_unique($allFiles);
     }
 
-    public function mediaGalleryExecute(string $path = "pub/media"): void
+    public function mediaGalleryExecute(string $path = self::PATH_MEDIA): void
     {
         try {
             $this->isTest = false;
@@ -115,11 +105,11 @@ class AwsS3Sync
             $path = str_replace($mediaUrl, '', $path);
             $images = $this->getMediaFiles($path);
 
-            $paths = Utils::getMediaGalleryAssetPaths();
+            $existingPaths = array_flip(Utils::getMediaGalleryAssetPaths());
 
             foreach ($images as $image) {
                 $path = str_replace('pub/media/', '', $image);
-                if (!in_array($path, $paths)) {
+                if (!array_key_exists($path, $existingPaths)) {
                     $fullPath = $mediaUrl . $path;
                     $path_parts = pathinfo($fullPath);
                     if (array_key_exists('extension', $path_parts)) {
