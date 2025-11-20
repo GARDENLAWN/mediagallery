@@ -4,21 +4,15 @@ namespace GardenLawn\MediaGallery\Model;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
-use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
-/**
- * Service class to handle synchronization between an S3 bucket and the media_gallery_asset table.
- */
 class S3AssetSynchronizer
 {
-    // Constants for env.php configuration paths
-    const string CONFIG_PATH_KEY = 'remote_storage/driver_options/key';
-    const string CONFIG_PATH_SECRET = 'remote_storage/driver_options/secret';
-    const string CONFIG_PATH_REGION = 'remote_storage/driver_options/region';
-    const string CONFIG_PATH_BUCKET = 'remote_storage/driver_options/bucket';
-    const string CONFIG_PATH_PREFIX = 'remote_storage/driver_options/prefix';
+    const CONFIG_PATH_KEY = 'remote_storage/driver_options/key';
+    const CONFIG_PATH_SECRET = 'remote_storage/driver_options/secret';
+    const CONFIG_PATH_REGION = 'remote_storage/driver_options/region';
+    const CONFIG_PATH_BUCKET = 'remote_storage/driver_options/bucket';
+    const CONFIG_PATH_PREFIX = 'remote_storage/driver_options/prefix';
 
     protected ResourceConnection $resourceConnection;
     protected DeploymentConfig $deploymentConfig;
@@ -36,13 +30,14 @@ class S3AssetSynchronizer
     }
 
     /**
-     * Finds new assets in S3 and adds them to the media_gallery_asset table.
+     * Synchronizes S3 assets with the database.
      *
-     * @param bool $dryRun If true, will not modify the database.
-     * @return array The list of asset data that was (or would be) inserted.
+     * @param bool $dryRun If true, no database modifications will be made.
+     * @param bool $enableDeletion If true, assets missing from S3 will be deleted from the database.
+     * @return array A summary of operations: ['inserted' => [...], 'deleted' => [...]].
      * @throws \Exception
      */
-    public function synchronize(bool $dryRun = false): array
+    public function synchronize(bool $dryRun = false, bool $enableDeletion = false): array
     {
         $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
         $prefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
@@ -53,21 +48,49 @@ class S3AssetSynchronizer
 
         $s3FilePaths = $this->getAllS3FilePaths($bucket, $prefix);
         $dbAssetPaths = $this->getExistingDbAssetPaths();
+
+        // 1. Find new assets to insert
         $assetsToInsert = $this->findNewAssets($s3FilePaths, $dbAssetPaths);
 
-        if (!$dryRun && !empty($assetsToInsert)) {
-            $connection = $this->resourceConnection->getConnection();
-            $tableName = $connection->getTableName('media_gallery_asset');
-            $connection->insertMultiple($tableName, $assetsToInsert);
+        // 2. Find orphaned assets to delete
+        $assetsToDelete = [];
+        if ($enableDeletion) {
+            $assetsToDelete = $this->findOrphanedAssets($s3FilePaths, $dbAssetPaths);
         }
 
-        return $assetsToInsert;
+        // 3. Perform database operations if not a dry run
+        if (!$dryRun) {
+            $connection = $this->resourceConnection->getConnection();
+            $tableName = $connection->getTableName('media_gallery_asset');
+
+            if (!empty($assetsToInsert)) {
+                $connection->insertMultiple($tableName, $assetsToInsert);
+            }
+
+            if ($enableDeletion && !empty($assetsToDelete)) {
+                // Delete in chunks to avoid long queries
+                $connection->delete($tableName, ['path IN (?)' => $assetsToDelete]);
+            }
+        }
+
+        return [
+            'inserted' => $assetsToInsert,
+            'deleted' => $assetsToDelete
+        ];
     }
 
-    /**
-     * @throws FileSystemException
-     * @throws RuntimeException
-     */
+    private function findOrphanedAssets(array $s3FilePaths, array $dbAssetPaths): array
+    {
+        $s3PathsMap = array_flip($s3FilePaths);
+        $orphanedPaths = [];
+        foreach ($dbAssetPaths as $dbPath => $value) {
+            if (!isset($s3PathsMap[$dbPath])) {
+                $orphanedPaths[] = $dbPath;
+            }
+        }
+        return $orphanedPaths;
+    }
+
     private function getS3Client(): S3Client
     {
         if ($this->s3Client === null) {
@@ -93,10 +116,6 @@ class S3AssetSynchronizer
         return $this->s3Client;
     }
 
-    /**
-     * @throws FileSystemException
-     * @throws RuntimeException
-     */
     private function getAllS3FilePaths(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
@@ -114,7 +133,7 @@ class S3AssetSynchronizer
 
             if (is_array($contents)) {
                 foreach ($contents as $object) {
-                    if (!str_ends_with($object['Key'], '/')) {
+                    if (substr($object['Key'], -1) !== '/') {
                         $path = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '\/?/', '', $object['Key']) : $object['Key'];
                         if (!empty($path)) {
                             $allPaths[] = $path;
