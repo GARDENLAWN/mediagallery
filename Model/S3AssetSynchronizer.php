@@ -8,11 +8,12 @@ use Psr\Log\LoggerInterface;
 
 class S3AssetSynchronizer
 {
-    const CONFIG_PATH_KEY = 'remote_storage/driver_options/key';
-    const CONFIG_PATH_SECRET = 'remote_storage/driver_options/secret';
-    const CONFIG_PATH_REGION = 'remote_storage/driver_options/region';
-    const CONFIG_PATH_BUCKET = 'remote_storage/driver_options/bucket';
-    const CONFIG_PATH_PREFIX = 'remote_storage/driver_options/prefix';
+    // Corrected paths for the user's env.php structure
+    const string CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
+    const string CONFIG_PATH_REGION = 'remote_storage/config/region';
+    const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
+    const string CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
+    const string CONFIG_PATH_PREFIX = 'remote_storage/prefix';
 
     protected ResourceConnection $resourceConnection;
     protected DeploymentConfig $deploymentConfig;
@@ -49,16 +50,12 @@ class S3AssetSynchronizer
         $s3FilePaths = $this->getAllS3FilePaths($bucket, $prefix);
         $dbAssetPaths = $this->getExistingDbAssetPaths();
 
-        // 1. Find new assets to insert
         $assetsToInsert = $this->findNewAssets($s3FilePaths, $dbAssetPaths);
-
-        // 2. Find orphaned assets to delete
         $assetsToDelete = [];
         if ($enableDeletion) {
             $assetsToDelete = $this->findOrphanedAssets($s3FilePaths, $dbAssetPaths);
         }
 
-        // 3. Perform database operations if not a dry run
         if (!$dryRun) {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $connection->getTableName('media_gallery_asset');
@@ -68,7 +65,6 @@ class S3AssetSynchronizer
             }
 
             if ($enableDeletion && !empty($assetsToDelete)) {
-                // Delete in chunks to avoid long queries
                 $connection->delete($tableName, ['path IN (?)' => $assetsToDelete]);
             }
         }
@@ -134,6 +130,7 @@ class S3AssetSynchronizer
             if (is_array($contents)) {
                 foreach ($contents as $object) {
                     if (substr($object['Key'], -1) !== '/') {
+                        // Remove base prefix from path if it exists
                         $path = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '\/?/', '', $object['Key']) : $object['Key'];
                         if (!empty($path)) {
                             $allPaths[] = $path;
