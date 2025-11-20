@@ -16,6 +16,7 @@ class S3AssetSynchronizer
     const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
     const string CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
     const string CONFIG_PATH_PREFIX = 'remote_storage/prefix';
+    const string MEDIA_DIR = 'media';
 
     protected ResourceConnection $resourceConnection;
     protected DeploymentConfig $deploymentConfig;
@@ -40,13 +41,16 @@ class S3AssetSynchronizer
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false): array
     {
         $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
-        $prefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
+        $envPrefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
 
         if (empty($bucket)) {
             throw new Exception('S3 bucket name is not configured in env.php.');
         }
 
-        $s3Files = $this->getAllS3Files($bucket, $prefix);
+        // Construct the full prefix to query S3 and to strip from the results (e.g., "pub/media/")
+        $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
+
+        $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
         $dbAssetPaths = $this->getExistingDbAssetPaths();
 
         $assetsToInsert = $this->findNewAssets($s3Files, $dbAssetPaths);
@@ -116,7 +120,8 @@ class S3AssetSynchronizer
     }
 
     /**
-     * @throws Exception
+     * @throws FileSystemException
+     * @throws RuntimeException
      */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
@@ -136,7 +141,11 @@ class S3AssetSynchronizer
             if (is_array($contents)) {
                 foreach ($contents as $object) {
                     if (!str_ends_with($object['Key'], '/')) {
-                        $path = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '\/?/', '', $object['Key']) : $object['Key'];
+                        // Strip the full media prefix (e.g., "pub/media/") to get the correct relative path
+                        $path = str_starts_with($object['Key'], $prefix)
+                            ? substr($object['Key'], strlen($prefix))
+                            : $object['Key'];
+
                         if (!empty($path)) {
                             $allFiles[$path] = [
                                 'size' => $object['Size']
@@ -184,7 +193,7 @@ class S3AssetSynchronizer
             'title' => $filename,
             'source' => 'aws-s3',
             'content_type' => $mimeTypes[$extension] ?? 'application/octet-stream',
-            'size' => $data['size'] ?? 0, // Add the size here
+            'size' => $data['size'] ?? 0,
         ];
     }
 }
