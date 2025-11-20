@@ -6,23 +6,19 @@ use Aws\S3\S3Client;
 use Exception;
 use GardenLawn\Core\Utils\Logger;
 use GardenLawn\Core\Utils\Utils;
-use Magento\Framework\App\ObjectManager;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 class AwsS3Sync
 {
-    private const int MAX_SIZE = 1600;
-    protected ObjectManager $objectManager;
     protected S3Client $s3client;
     protected AdapterInterface $connection;
     private bool $isTest = false;
 
-    public function __construct()
+    public function __construct(ResourceConnection $resource)
     {
-        $this->objectManager = ObjectManager::getInstance();
         $this->s3client = Utils::getS3Client();
-        $resource = $this->objectManager->get('Magento\Framework\App\ResourceConnection');
         $this->connection = $resource->getConnection();
     }
 
@@ -41,11 +37,11 @@ class AwsS3Sync
     public function deleteTmpImages(): void
     {
         $images = $this->getMediaFiles('pub');
-        foreach ($images as $key) {
-            if (substr_count($key, '/') == 1 && Utils::isImage($key, true)) {
+        foreach ($images as $image) {
+            if (substr_count($image, '/') == 1 && Utils::isImage($image, true)) {
                 $this->s3client->deleteObject([
                     'Bucket' => Utils::Bucket,
-                    'Key' => $key
+                    'Key' => $image
                 ]);
             }
         }
@@ -54,18 +50,18 @@ class AwsS3Sync
     public function moveProductImages(): void
     {
         $images = $this->getMediaFiles('pub/pub');
-        foreach ($images as $key) {
-            if (Utils::isImage($key, true)) {
-                $to = str_replace('pub/pub/', 'pub/', $key);
-                Logger::writeLog("Copy from $key to $to");
+        foreach ($images as $image) {
+            if (Utils::isImage($image, true)) {
+                $to = str_replace('pub/pub/', 'pub/', $image);
+                Logger::writeLog("Copy from $image to $to");
                 $this->s3client->copyObject([
                     'Bucket' => Utils::Bucket,
-                    'CopySource' => Utils::Bucket . '/' . $key,
+                    'CopySource' => Utils::Bucket . '/' . $image,
                     'Key' => $to
                 ]);
                 $this->s3client->deleteObject([
                     'Bucket' => Utils::Bucket,
-                    'Key' => $key
+                    'Key' => $image
                 ]);
             }
         }
@@ -91,7 +87,7 @@ class AwsS3Sync
 
         $images = [];
 
-        foreach ($dirs as $key => $dir) {
+        foreach ($dirs as $dir) {
             $result = $this->s3client->listObjectsV2([
                 'Bucket' => Utils::Bucket,
                 'Prefix' => $dir
@@ -121,15 +117,15 @@ class AwsS3Sync
 
             $paths = Utils::getMediaGalleryAssetPaths();
 
-            foreach ($images as $key) {
-                $path = str_replace('pub/media/', '', $key);
+            foreach ($images as $image) {
+                $path = str_replace('pub/media/', '', $image);
                 if (!in_array($path, $paths)) {
                     $fullPath = $mediaUrl . $path;
                     $path_parts = pathinfo($fullPath);
                     if (array_key_exists('extension', $path_parts)) {
                         $extension = $path_parts['extension'];
                         if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp']) &&
-                            !str_contains($key, 'cache')) {
+                            !str_contains($image, 'cache')) {
                             $this->insertToMediaGalleryAsset($path);
                         }
                     }
@@ -154,7 +150,7 @@ class AwsS3Sync
                 $updateSql = "UPDATE media_gallery_asset SET mediagallery_id = (SELECT m.id FROM gardenlawn_mediagallery m WHERE m.name = '" . dirname($asset['path']) . "') WHERE id = " . $asset['id'];
                 $this->connection->query($updateSql);
             }
-        } catch (Exception $e) {
+        } catch (NoSuchEntityException $e) {
             Logger::writeLog($e);
         }
     }
@@ -165,20 +161,20 @@ class AwsS3Sync
             return;
         }
 
-        $mediaUrl = Utils::getMediaUrl();
-        $path = str_replace('pub/media/', '', str_replace($mediaUrl, '', $path));
-        $fullPath = $mediaUrl . str_replace(' ', '+', $path);
-
-        $select = "SELECT * FROM media_gallery_asset WHERE path = '" . $path . "'";
-        $result = $this->connection->fetchAll($select);
-
-        if (count($result) > 0) {
-            return;
-        }
-
-        $path_parts = pathinfo($fullPath);
-        $title = str_replace('_', ' ', $path_parts['filename']);
         try {
+            $mediaUrl = Utils::getMediaUrl();
+            $path = str_replace('pub/media/', '', str_replace($mediaUrl, '', $path));
+            $fullPath = $mediaUrl . str_replace(' ', '+', $path);
+
+            $select = "SELECT * FROM media_gallery_asset WHERE path = '" . $path . "'";
+            $result = $this->connection->fetchAll($select);
+
+            if (count($result) > 0) {
+                return;
+            }
+
+            $path_parts = pathinfo($fullPath);
+            $title = str_replace('_', ' ', $path_parts['filename']);
             $info = getimagesize($fullPath);
             $mime = $info['mime'];
             $width = $info[0];
@@ -189,8 +185,8 @@ class AwsS3Sync
                 SELECT "' . $path . '","' . $title . '",null , "Local", "' . $hash . '","' . $mime . '",' . $width . ',' . $height . ',' . $size;
 
             $this->connection->query($insertSql);
-        } catch (\Http\Client\Exception) {
-
+        } catch (NoSuchEntityException $e) {
+            Logger::writeLog($e);
         }
     }
 }
