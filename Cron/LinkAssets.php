@@ -1,112 +1,51 @@
 <?php
 namespace GardenLawn\MediaGallery\Cron;
 
-use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
+use GardenLawn\MediaGallery\Model\AssetLinker;
+use Magento\Framework\App\ResourceConnection;
 
 class LinkAssets
 {
-    protected ResourceConnection $resource;
     protected LoggerInterface $logger;
-    protected GalleryCollectionFactory $galleryCollectionFactory;
+    protected AssetLinker $assetLinker;
+    protected ResourceConnection $resourceConnection;
 
     public function __construct(
-        ResourceConnection $resource,
         LoggerInterface $logger,
-        GalleryCollectionFactory $galleryCollectionFactory
+        AssetLinker $assetLinker,
+        ResourceConnection $resourceConnection
     ) {
-        $this->resource = $resource;
         $this->logger = $logger;
-        $this->galleryCollectionFactory = $galleryCollectionFactory;
+        $this->assetLinker = $assetLinker;
+        $this->resourceConnection = $resourceConnection;
     }
 
     public function execute(): void
     {
-        $this->logger->info('MediaGallery Cron: Starting asset linking cron job.');
-        $connection = $this->resource->getConnection();
+        $this->logger->info('MediaGallery Cron: Starting asset linking job.');
+        $connection = $this->resourceConnection->getConnection();
         $connection->beginTransaction();
+
         try {
-            $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
-            $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
+            $linkedAssets = $this->assetLinker->linkAssetsToGalleries();
+            $totalLinks = 0;
 
-            $galleries = $this->galleryCollectionFactory->create();
-            $totalGalleries = $galleries->getSize(); // Liczba galerii
-            $this->logger->info(sprintf('MediaGallery Cron: Found %d galleries to process.', $totalGalleries));
-
-            $totalLinksInserted = 0;
-
-            // Optymalizacja: Pobierz wszystkie maksymalne sort_order dla wszystkich galerii w jednym zapytaniu
-            $selectMaxSortOrders = $connection->select()
-                ->from(
-                    $linkTable,
-                    ['gallery_id', 'MAX(sort_order)']
-                )
-                ->group('gallery_id');
-            $maxSortOrders = $connection->fetchPairs($selectMaxSortOrders); // Zwraca [gallery_id => max_sort_order]
-
-            foreach ($galleries as $gallery) {
-                $galleryId = $gallery->getId();
-                $galleryName = $gallery->getName();
-
-                // UWAGA: Założenie, że nazwa galerii jest bezpieczna do użycia jako prefiks ścieżki pliku.
-                // Rozważ dodanie dedykowanego pola "path_identifier" w tabeli galerii,
-                // jeśli nazwy galerii mogą zawierać znaki specjalne lub nie są unikalne jako prefiksy.
-                if (empty($galleryName)) {
-                    $this->logger->warning(sprintf('MediaGallery Cron: Skipping gallery ID %d because its name is empty.', $galleryId));
-                    continue;
-                }
-
-                // Użyj pre-pobranej wartości, domyślnie 0 jeśli brak wpisów dla tej galerii
-                $maxSortOrder = $maxSortOrders[$galleryId] ?? 0;
-                $currentSortOrder = $maxSortOrder + 1;
-
-                // Znajdź zasoby, które pasują do prefiksu nazwy galerii i nie są jeszcze połączone
-                $query = $connection->select()
-                    ->from(['mga' => $mediaGalleryAssetTable], ['id', 'path'])
-                    ->where('mga.path LIKE ?', $galleryName . '/%')
-                    ->joinLeft(
-                        ['gmal' => $linkTable],
-                        'gmal.asset_id = mga.id AND gmal.gallery_id = ' . $galleryId,
-                        []
-                    )
-                    ->where('gmal.asset_id IS NULL');
-
-                $assetsToLink = $connection->fetchAll($query);
-
-                if (!empty($assetsToLink)) {
-                    $linksToInsert = [];
-                    foreach ($assetsToLink as $asset) {
-                        if (!is_numeric($asset['id'])) {
-                            $this->logger->warning(sprintf('MediaGallery Cron: Skipping asset with invalid ID "%s" (path: %s) for gallery ID %d.', $asset['id'], $asset['path'], $galleryId));
-                            continue;
-                        }
-                        $linksToInsert[] = [
-                            'gallery_id' => $galleryId,
-                            'asset_id' => (int)$asset['id'],
-                            'sort_order' => $currentSortOrder++,
-                            'enabled' => 1
-                        ];
-                    }
-
-                    if (!empty($linksToInsert)) {
-                        $connection->insertMultiple($linkTable, $linksToInsert);
-                        $insertedCount = count($linksToInsert);
-                        $totalLinksInserted += $insertedCount;
-                        $this->logger->info(sprintf('MediaGallery Cron: Linked %d assets to gallery "%s" (ID: %d).', $insertedCount, $galleryName, $galleryId));
-                    } else {
-                        $this->logger->info(sprintf('MediaGallery Cron: No valid assets to link for gallery "%s" (ID: %d) after validation.', $galleryName, $galleryId));
-                    }
-                } else {
-                    $this->logger->info(sprintf('MediaGallery Cron: No new assets to link for gallery "%s" (ID: %d).', $galleryName, $galleryId));
+            if (empty($linkedAssets)) {
+                $this->logger->info('MediaGallery Cron: No new assets needed to be linked.');
+            } else {
+                foreach ($linkedAssets as $galleryId => $data) {
+                    $this->logger->info(sprintf('MediaGallery Cron: Linked %d assets to gallery "%s" (ID: %d).', $data['count'], $data['name'], $galleryId));
+                    $totalLinks += $data['count'];
                 }
             }
 
             $connection->commit();
-            $this->logger->info(sprintf('MediaGallery Cron: Asset linking cron job finished. Total new links inserted: %d', $totalLinksInserted));
+            $this->logger->info(sprintf('MediaGallery Cron: Asset linking job finished successfully. Total new links: %d', $totalLinks));
+
         } catch (\Exception $e) {
             $connection->rollBack();
-            $this->logger->critical('MediaGallery Cron: Error in asset linking cron job: ' . $e->getMessage(), ['exception' => $e]);
+            $this->logger->critical('MediaGallery Cron: Error in asset linking job: ' . $e->getMessage(), ['exception' => $e]);
         }
     }
 }
