@@ -2,6 +2,7 @@
 
 namespace GardenLawn\MediaGallery\Console\Command;
 
+use Magento\Framework\Console\Cli;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -95,7 +96,7 @@ class PopulateAssetLinks extends Command
                 $connection->commit();
             }
             $output->writeln($mode . '<info>Population script finished successfully.</info>');
-            return \Magento\Framework\Console\Cli::RETURN_SUCCESS;
+            return Cli::RETURN_SUCCESS;
 
         } catch (\Exception $e) {
             if (!$isDryRun) {
@@ -103,7 +104,7 @@ class PopulateAssetLinks extends Command
             }
             $output->writeln('<error>An error occurred: ' . $e->getMessage() . '</error>');
             $this->logger->critical('MediaGallery CLI Error: ' . $e->getMessage(), ['exception' => $e]);
-            return \Magento\Framework\Console\Cli::RETURN_FAILURE;
+            return Cli::RETURN_FAILURE;
         }
     }
 }

@@ -3,8 +3,9 @@ namespace GardenLawn\MediaGallery\Model;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
-use Magento\AwsS3\Model\S3ClientFactory;
 use Aws\S3\S3Client;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -12,23 +13,24 @@ use Psr\Log\LoggerInterface;
  */
 class S3AssetSynchronizer
 {
-    const DEPLOYMENT_CONFIG_S3_BUCKET = 'remote_storage/driver_options/bucket';
-    const DEPLOYMENT_CONFIG_S3_PREFIX = 'remote_storage/driver_options/prefix';
+    // Constants for env.php configuration paths
+    const string CONFIG_PATH_KEY = 'remote_storage/driver_options/key';
+    const string CONFIG_PATH_SECRET = 'remote_storage/driver_options/secret';
+    const string CONFIG_PATH_REGION = 'remote_storage/driver_options/region';
+    const string CONFIG_PATH_BUCKET = 'remote_storage/driver_options/bucket';
+    const string CONFIG_PATH_PREFIX = 'remote_storage/driver_options/prefix';
 
     protected ResourceConnection $resourceConnection;
-    protected S3ClientFactory $s3ClientFactory;
     protected DeploymentConfig $deploymentConfig;
     protected LoggerInterface $logger;
     private ?S3Client $s3Client = null;
 
     public function __construct(
         ResourceConnection $resourceConnection,
-        S3ClientFactory    $s3ClientFactory,
         DeploymentConfig   $deploymentConfig,
         LoggerInterface    $logger
     ) {
         $this->resourceConnection = $resourceConnection;
-        $this->s3ClientFactory = $s3ClientFactory;
         $this->deploymentConfig = $deploymentConfig;
         $this->logger = $logger;
     }
@@ -42,8 +44,8 @@ class S3AssetSynchronizer
      */
     public function synchronize(bool $dryRun = false): array
     {
-        $bucket = $this->deploymentConfig->get(self::DEPLOYMENT_CONFIG_S3_BUCKET);
-        $prefix = $this->deploymentConfig->get(self::DEPLOYMENT_CONFIG_S3_PREFIX, '');
+        $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
+        $prefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
 
         if (empty($bucket)) {
             throw new \Exception('S3 bucket name is not configured in env.php.');
@@ -62,14 +64,39 @@ class S3AssetSynchronizer
         return $assetsToInsert;
     }
 
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     */
     private function getS3Client(): S3Client
     {
         if ($this->s3Client === null) {
-            $this->s3Client = $this->s3ClientFactory->create();
+            $key = $this->deploymentConfig->get(self::CONFIG_PATH_KEY);
+            $secret = $this->deploymentConfig->get(self::CONFIG_PATH_SECRET);
+            $region = $this->deploymentConfig->get(self::CONFIG_PATH_REGION);
+
+            if (!$key || !$secret || !$region) {
+                throw new \Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
+            }
+
+            $config = [
+                'version' => 'latest',
+                'region' => $region,
+                'credentials' => [
+                    'key' => $key,
+                    'secret' => $secret,
+                ],
+            ];
+
+            $this->s3Client = new S3Client($config);
         }
         return $this->s3Client;
     }
 
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     */
     private function getAllS3FilePaths(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
@@ -87,7 +114,7 @@ class S3AssetSynchronizer
 
             if (is_array($contents)) {
                 foreach ($contents as $object) {
-                    if (substr($object['Key'], -1) !== '/') {
+                    if (!str_ends_with($object['Key'], '/')) {
                         $path = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '\/?/', '', $object['Key']) : $object['Key'];
                         if (!empty($path)) {
                             $allPaths[] = $path;

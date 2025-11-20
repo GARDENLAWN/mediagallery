@@ -1,6 +1,7 @@
 <?php
 namespace GardenLawn\MediaGallery\Console\Command;
 
+use Magento\Framework\Console\Cli;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -62,12 +63,12 @@ class SyncS3Assets extends Command
             }
 
             $output->writeln($mode . '<info>Synchronization finished successfully.</info>');
-            return \Magento\Framework\Console\Cli::RETURN_SUCCESS;
+            return Cli::RETURN_SUCCESS;
 
         } catch (\Exception $e) {
             $output->writeln('<error>An error occurred: ' . $e->getMessage() . '</error>');
             $this->logger->critical('S3 Sync CLI Error: ' . $e->getMessage(), ['exception' => $e]);
-            return \Magento\Framework\Console\Cli::RETURN_FAILURE;
+            return Cli::RETURN_FAILURE;
         }
     }
 }
