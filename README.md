@@ -18,10 +18,11 @@ Synchronizuje tabelę `media_gallery_asset` z zawartością bucketa S3.
 *   **Opcje:**
     *   `--dry-run`: Wyświetla, jakie zmiany zostałyby wprowadzone, bez modyfikacji bazy danych.
     *   `--with-delete`: **(Ostrożnie!)** Włącza usuwanie z bazy danych wpisów o plikach, które nie istnieją już w S3.
-    
-    *Przykład użycia z usuwaniem:*
+    *   `--force-update`: **(Może być wolne!)** Włącza aktualizację istniejących plików, jeśli brakuje im `hash`, `width`, `height` lub `hash` się zmienił.
+
+    *Przykład pełnej synchronizacji (dodawanie, aktualizacja, usuwanie):*
     ```sh
-    bin/magento gardenlawn:mediagallery:sync-s3 --with-delete
+    bin/magento gardenlawn:mediagallery:sync-s3 --with-delete --force-update
     ```
 
 ### 2. `gardenlawn:mediagallery:populate-all`
