@@ -2,7 +2,6 @@
 namespace GardenLawn\MediaGallery\Model;
 
 use Exception;
-use GardenLawn\Core\Utils\Logger;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
@@ -53,7 +52,7 @@ class S3AssetSynchronizer
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
         $dbAssetPaths = $this->getExistingDbAssetPaths();
 
-        $assetsToInsert = $this->findNewAssets($s3Files, $dbAssetPaths);
+        $assetsToInsert = $this->findNewAssets($s3Files, $dbAssetPaths, $bucket, $s3MediaPrefix);
         $assetsToDelete = [];
         if ($enableDeletion) {
             $assetsToDelete = $this->findOrphanedAssets(array_keys($s3Files), $dbAssetPaths);
@@ -93,6 +92,7 @@ class S3AssetSynchronizer
     /**
      * @throws FileSystemException
      * @throws RuntimeException
+     * @throws Exception
      */
     private function getS3Client(): S3Client
     {
@@ -120,45 +120,31 @@ class S3AssetSynchronizer
     }
 
     /**
-     * Gets all file paths from S3 using the recommended Paginator for reliability.
+     * @throws FileSystemException
+     * @throws RuntimeException
      */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
-        try {
-            $s3Client = $this->getS3Client();
-        } catch (FileSystemException|RuntimeException) {
-            return [];
-        }
+        $s3Client = $this->getS3Client();
         $allFiles = [];
-
-        // Use the recommended AWS SDK Paginator to handle large numbers of files automatically.
-        $paginator = $s3Client->getPaginator('ListObjectsV2', [
-            'Bucket' => $bucket,
-            'Prefix' => $prefix
-        ]);
+        $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket, 'Prefix' => $prefix]);
 
         foreach ($paginator as $result) {
             $contents = $result->get('Contents');
-            Logger::writeLog($contents);
             if (is_array($contents)) {
                 foreach ($contents as $object) {
-                    // Ignore directories
                     if (!str_ends_with($object['Key'], '/')) {
-                        // Strip the full media prefix (e.g., "pub/media/") to get the correct relative path
-                        $path = str_starts_with($object['Key'], $prefix)
-                            ? substr($object['Key'], strlen($prefix))
-                            : $object['Key'];
-
+                        $path = str_starts_with($object['Key'], $prefix) ? substr($object['Key'], strlen($prefix)) : $object['Key'];
                         if (!empty($path)) {
                             $allFiles[$path] = [
-                                'size' => $object['Size']
+                                'size' => $object['Size'],
+                                'hash' => trim($object['ETag'], '"') // Get ETag as hash
                             ];
                         }
                     }
                 }
             }
         }
-
         return $allFiles;
     }
 
@@ -170,32 +156,57 @@ class S3AssetSynchronizer
         return array_flip($connection->fetchCol($select));
     }
 
-    private function findNewAssets(array $s3Files, array $dbAssetPaths): array
+    private function findNewAssets(array $s3Files, array $dbAssetPaths, string $bucket, string $s3MediaPrefix): array
     {
         $newAssets = [];
         foreach ($s3Files as $s3Path => $s3Data) {
             if (!isset($dbAssetPaths[$s3Path])) {
-                $newAssets[] = $this->prepareAssetData($s3Path, $s3Data);
+                $newAssets[] = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
             }
         }
         return $newAssets;
     }
 
-    private function prepareAssetData(string $path, array $data): array
+    private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix): array
     {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $filename = pathinfo($path, PATHINFO_BASENAME);
+        $width = 0;
+        $height = 0;
+
+        // Attempt to get image dimensions, but only for common image types
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (in_array($extension, $imageExtensions)) {
+            try {
+                // Construct the full object key to get its URL
+                $fullS3Key = $s3MediaPrefix . $path;
+                $imageUrl = $this->getS3Client()->getObjectUrl($bucket, $fullS3Key);
+                // Use error suppression as getimagesize can throw warnings for non-image files
+                $imageSizeInfo = @getimagesize($imageUrl);
+                if ($imageSizeInfo) {
+                    $width = (int)$imageSizeInfo[0];
+                    $height = (int)$imageSizeInfo[1];
+                }
+            } catch (Exception $e) {
+                $this->logger->warning('Could not get image size for ' . $path . ': ' . $e->getMessage());
+            }
+        }
+
         $mimeTypes = [
             'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
             'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml',
             'mp4' => 'video/mp4', 'webm' => 'video/webm'
         ];
+
         return [
             'path' => $path,
             'title' => $filename,
             'source' => 'aws-s3',
             'content_type' => $mimeTypes[$extension] ?? 'application/octet-stream',
             'size' => $data['size'] ?? 0,
+            'hash' => $data['hash'] ?? null,
+            'width' => $width,
+            'height' => $height
         ];
     }
 }
