@@ -1,14 +1,16 @@
 <?php
 namespace GardenLawn\MediaGallery\Model;
 
+use Exception;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
 class S3AssetSynchronizer
 {
-    // Corrected paths for the user's env.php structure
     const string CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
     const string CONFIG_PATH_REGION = 'remote_storage/config/region';
     const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
@@ -31,12 +33,9 @@ class S3AssetSynchronizer
     }
 
     /**
-     * Synchronizes S3 assets with the database.
-     *
-     * @param bool $dryRun If true, no database modifications will be made.
-     * @param bool $enableDeletion If true, assets missing from S3 will be deleted from the database.
-     * @return array A summary of operations: ['inserted' => [...], 'deleted' => [...]].
-     * @throws \Exception
+     * @throws FileSystemException
+     * @throws RuntimeException
+     * @throws Exception
      */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false): array
     {
@@ -44,16 +43,16 @@ class S3AssetSynchronizer
         $prefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
 
         if (empty($bucket)) {
-            throw new \Exception('S3 bucket name is not configured in env.php.');
+            throw new Exception('S3 bucket name is not configured in env.php.');
         }
 
-        $s3FilePaths = $this->getAllS3FilePaths($bucket, $prefix);
+        $s3Files = $this->getAllS3Files($bucket, $prefix);
         $dbAssetPaths = $this->getExistingDbAssetPaths();
 
-        $assetsToInsert = $this->findNewAssets($s3FilePaths, $dbAssetPaths);
+        $assetsToInsert = $this->findNewAssets($s3Files, $dbAssetPaths);
         $assetsToDelete = [];
         if ($enableDeletion) {
-            $assetsToDelete = $this->findOrphanedAssets($s3FilePaths, $dbAssetPaths);
+            $assetsToDelete = $this->findOrphanedAssets(array_keys($s3Files), $dbAssetPaths);
         }
 
         if (!$dryRun) {
@@ -87,6 +86,10 @@ class S3AssetSynchronizer
         return $orphanedPaths;
     }
 
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     */
     private function getS3Client(): S3Client
     {
         if ($this->s3Client === null) {
@@ -95,7 +98,7 @@ class S3AssetSynchronizer
             $region = $this->deploymentConfig->get(self::CONFIG_PATH_REGION);
 
             if (!$key || !$secret || !$region) {
-                throw new \Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
+                throw new Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
             }
 
             $config = [
@@ -112,10 +115,13 @@ class S3AssetSynchronizer
         return $this->s3Client;
     }
 
-    private function getAllS3FilePaths(string $bucket, string $prefix): array
+    /**
+     * @throws Exception
+     */
+    private function getAllS3Files(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
-        $allPaths = [];
+        $allFiles = [];
         $continuationToken = null;
 
         do {
@@ -129,11 +135,12 @@ class S3AssetSynchronizer
 
             if (is_array($contents)) {
                 foreach ($contents as $object) {
-                    if (substr($object['Key'], -1) !== '/') {
-                        // Remove base prefix from path if it exists
+                    if (!str_ends_with($object['Key'], '/')) {
                         $path = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '\/?/', '', $object['Key']) : $object['Key'];
                         if (!empty($path)) {
-                            $allPaths[] = $path;
+                            $allFiles[$path] = [
+                                'size' => $object['Size']
+                            ];
                         }
                     }
                 }
@@ -141,7 +148,7 @@ class S3AssetSynchronizer
             $continuationToken = $result->get('NextContinuationToken');
         } while ($continuationToken);
 
-        return $allPaths;
+        return $allFiles;
     }
 
     private function getExistingDbAssetPaths(): array
@@ -152,25 +159,21 @@ class S3AssetSynchronizer
         return array_flip($connection->fetchCol($select));
     }
 
-    private function findNewAssets(array $s3FilePaths, array $dbAssetPaths): array
+    private function findNewAssets(array $s3Files, array $dbAssetPaths): array
     {
         $newAssets = [];
-        foreach ($s3FilePaths as $s3Path) {
+        foreach ($s3Files as $s3Path => $s3Data) {
             if (!isset($dbAssetPaths[$s3Path])) {
-                $newAssets[] = $this->prepareAssetData($s3Path);
+                $newAssets[] = $this->prepareAssetData($s3Path, $s3Data);
             }
         }
         return $newAssets;
     }
 
-    private function prepareAssetData(string $path): array
+    private function prepareAssetData(string $path, array $data): array
     {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $filename = pathinfo($path, PATHINFO_BASENAME);
-        $mediaType = 'image';
-        if (in_array($extension, ['mp4', 'mov', 'avi', 'webm'])) {
-            $mediaType = 'video';
-        }
         $mimeTypes = [
             'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
             'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml',
@@ -181,7 +184,7 @@ class S3AssetSynchronizer
             'title' => $filename,
             'source' => 'aws-s3',
             'content_type' => $mimeTypes[$extension] ?? 'application/octet-stream',
-            'media_type' => $mediaType,
+            'size' => $data['size'] ?? 0, // Add the size here
         ];
     }
 }
