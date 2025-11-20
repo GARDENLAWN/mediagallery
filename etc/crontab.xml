@@ -4,8 +4,5 @@
         <job name="gardenlawn_mediagallery_link_assets" instance="GardenLawn\MediaGallery\Cron\LinkAssets" method="execute">
             <schedule>0 2 * * *</schedule> <!-- Runs every day at 2:00 AM -->
         </job>
-        <job name="gardenlawn_awss3sync_cron" instance="GardenLawn\MediaGallery\Cron\AwsS3Sync" method="execute">
-            <schedule>* * * * *</schedule>
-        </job>
     </group>
 </config>
