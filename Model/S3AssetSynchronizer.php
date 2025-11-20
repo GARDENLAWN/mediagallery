@@ -47,7 +47,6 @@ class S3AssetSynchronizer
             throw new Exception('S3 bucket name is not configured in env.php.');
         }
 
-        // Construct the full prefix to query S3 and to strip from the results (e.g., "pub/media/")
         $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
 
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
@@ -120,26 +119,28 @@ class S3AssetSynchronizer
     }
 
     /**
-     * @throws FileSystemException
-     * @throws RuntimeException
+     * Gets all file paths from S3 using the recommended Paginator for reliability.
      */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
-        $s3Client = $this->getS3Client();
+        try {
+            $s3Client = $this->getS3Client();
+        } catch (FileSystemException|RuntimeException) {
+            return [];
+        }
         $allFiles = [];
-        $continuationToken = null;
 
-        do {
-            $params = ['Bucket' => $bucket, 'Prefix' => $prefix];
-            if ($continuationToken) {
-                $params['ContinuationToken'] = $continuationToken;
-            }
+        // Use the recommended AWS SDK Paginator to handle large numbers of files automatically.
+        $paginator = $s3Client->getPaginator('ListObjectsV2', [
+            'Bucket' => $bucket,
+            'Prefix' => $prefix
+        ]);
 
-            $result = $s3Client->listObjectsV2($params);
+        foreach ($paginator as $result) {
             $contents = $result->get('Contents');
-
             if (is_array($contents)) {
                 foreach ($contents as $object) {
+                    // Ignore directories
                     if (!str_ends_with($object['Key'], '/')) {
                         // Strip the full media prefix (e.g., "pub/media/") to get the correct relative path
                         $path = str_starts_with($object['Key'], $prefix)
@@ -154,8 +155,7 @@ class S3AssetSynchronizer
                     }
                 }
             }
-            $continuationToken = $result->get('NextContinuationToken');
-        } while ($continuationToken);
+        }
 
         return $allFiles;
     }
