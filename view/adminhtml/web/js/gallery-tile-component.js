@@ -23,15 +23,17 @@ define([
         },
 
         _bindEvents: function () {
-            this.searchInput.on('keyup', this._filterTiles.bind(this));
+            // Manual search triggers the search-specific filter
+            this.searchInput.on('keyup', this._filterBySearch.bind(this));
             this.element.on('click', '.tile-actions-toggle', this._toggleActionsDropdown.bind(this));
             this.element.on('click', '.action-toggle-status', this._toggleStatus.bind(this));
             this.element.on('click', '.action-delete', this._deleteGallery.bind(this));
             $(document).on('click', this._closeAllDropdowns.bind(this));
 
-            // Listen for the custom event from the tree
+            // Tree clicks trigger the tree-specific filter
             $('body').on('gallery:filter:update', (e, filterValue) => {
-                this.searchInput.val(filterValue).trigger('keyup');
+                this.searchInput.val(filterValue); // Set value for user feedback
+                this._filterByTree(filterValue);   // Call the dedicated tree filter
             });
         },
 
@@ -41,6 +43,72 @@ define([
                 handle: '.drag-handle',
                 onEnd: this._saveOrder.bind(this)
             });
+        },
+
+        /**
+         * Filters tiles based on manual text input.
+         * This is a case-insensitive "contains" search on the full gallery path.
+         */
+        _filterBySearch: function () {
+            let searchTerm = this.searchInput.val().toLowerCase();
+            let visibleCount = 0;
+
+            if (searchTerm === '') {
+                this.grid.children('.gallery-tile').show();
+                visibleCount = this.grid.children('.gallery-tile').length;
+                this.noResultsMessage.toggle(visibleCount === 0);
+                return;
+            }
+
+            this.grid.children('.gallery-tile').each(function () {
+                let tile = $(this);
+                let galleryPath = tile.data('path');
+                let isVisible = false;
+
+                if (galleryPath) {
+                    isVisible = galleryPath.toLowerCase().includes(searchTerm);
+                }
+
+                tile.toggle(isVisible);
+                if (isVisible) {
+                    visibleCount++;
+                }
+            });
+
+            this.noResultsMessage.toggle(visibleCount === 0);
+        },
+
+        /**
+         * Filters tiles based on a tree node click.
+         * This is a case-sensitive "starts with" search to show children.
+         */
+        _filterByTree: function (filterValue) {
+            let visibleCount = 0;
+
+            if (filterValue === '') {
+                this.grid.children('.gallery-tile').show();
+                visibleCount = this.grid.children('.gallery-tile').length;
+                this.noResultsMessage.toggle(visibleCount === 0);
+                return;
+            }
+
+            this.grid.children('.gallery-tile').each(function () {
+                let tile = $(this);
+                let galleryPath = tile.data('path');
+                let isVisible = false;
+
+                if (galleryPath) {
+                    // A tile is visible if its path is an exact match OR if it's a sub-gallery.
+                    isVisible = (galleryPath === filterValue) || galleryPath.startsWith(filterValue + '/');
+                }
+
+                tile.toggle(isVisible);
+                if (isVisible) {
+                    visibleCount++;
+                }
+            });
+
+            this.noResultsMessage.toggle(visibleCount === 0);
         },
 
         _saveOrder: function () {
@@ -53,43 +121,6 @@ define([
             });
 
             this._ajaxRequest(this.options.saveOrderUrl, { order: newOrder });
-        },
-
-        _filterTiles: function () {
-            // Use the raw search term from the input, without converting to lower case.
-            let searchTerm = this.searchInput.val();
-            let visibleCount = 0;
-
-            if (searchTerm === '') {
-                this.grid.children('.gallery-tile').show();
-                visibleCount = this.grid.children('.gallery-tile').length;
-                this.noResultsMessage.toggle(visibleCount === 0);
-                return;
-            }
-
-            this.grid.children('.gallery-tile').each(function () {
-                let tile = $(this);
-                // CORRECTED: Get the full path from the data-path attribute.
-                let galleryPath = tile.data('path');
-
-                // If galleryPath is not available, skip this tile.
-                if (!galleryPath) {
-                    tile.hide();
-                    return;
-                }
-
-                // The filtering is now precise and case-sensitive against the full path.
-                let isVisible = (galleryPath === searchTerm);
-
-                if (isVisible) {
-                    tile.show();
-                    visibleCount++;
-                } else {
-                    tile.hide();
-                }
-            });
-
-            this.noResultsMessage.toggle(visibleCount === 0);
         },
 
         _toggleActionsDropdown: function (event) {
