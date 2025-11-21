@@ -1,18 +1,15 @@
 <?xml version="1.0"?>
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="content">
             <uiComponent name="gardenlawn_mediagallery_form"/>
         </referenceContainer>
         <referenceBlock name="gardenlawn_mediagallery_form">
             <referenceBlock name="asset_tiles_container">
-                <block class="GardenLawn\MediaGallery\Block\Adminhtml\AssetLink\Tiles" name="gardenlawn_mediagallery_assetlink_tiles" template="GardenLawn_MediaGallery::gallery/assetlink_tiles.phtml">
-                    <arguments>
-                        <!-- This is the key fix: It links the block's data to the form's data provider. -->
-                        <!-- It takes the 'id' from the provider and assigns it to the block's 'gallery_id' data key. -->
-                        <argument name="gallery_id" xsi:type="string">${ $.provider }:data.id</argument>
-                    </arguments>
-                </block>
+                <block class="GardenLawn\MediaGallery\Block\Adminhtml\AssetLink\Tiles"
+                       name="gardenlawn_mediagallery_assetlink_tiles"
+                       template="GardenLawn_MediaGallery::gallery/assetlink_tiles.phtml"/>
             </referenceBlock>
         </referenceBlock>
     </body>
