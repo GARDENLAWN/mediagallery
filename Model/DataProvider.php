@@ -6,40 +6,31 @@ namespace GardenLawn\MediaGallery\Model;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection;
+use Magento\Framework\Registry;
 
 class DataProvider extends AbstractDataProvider
 {
-    /**
-     * @var array
-     */
     protected array $loadedData = [];
-
-    /**
-     * @var Collection
-     */
     protected $collection;
+    private Registry $registry;
 
-    /**
-     * @param string $name
-     * @param string $primaryFieldName
-     * @param string $requestFieldName
-     * @param CollectionFactory $collectionFactory
-     * @param array $meta
-     * @param array $data
-     */
     public function __construct(
         $name,
         $primaryFieldName,
         $requestFieldName,
         CollectionFactory $collectionFactory,
+        Registry $registry,
         array $meta = [],
         array $data = []
     ) {
         $this->collection = $collectionFactory->create();
+        $this->registry = $registry;
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
     }
 
     /**
+     * Get data
+     *
      * @return array
      */
     public function getData(): array
@@ -47,6 +38,15 @@ class DataProvider extends AbstractDataProvider
         if (!empty($this->loadedData)) {
             return $this->loadedData;
         }
+
+        // Check for a pre-populated model for new entities
+        $model = $this->registry->registry('gardenlawn_mediagallery_gallery');
+        if ($model && !$model->getId()) {
+            $this->loadedData[$model->getId()] = $model->getData();
+            return $this->loadedData;
+        }
+
+        // Standard logic for existing entities
         $items = $this->collection->getItems();
         /** @var Gallery $gallery */
         foreach ($items as $gallery) {
