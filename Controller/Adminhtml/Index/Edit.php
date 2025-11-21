@@ -9,57 +9,57 @@ use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Result\PageFactory;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
+use GardenLawn\MediaGallery\Model\GalleryFactory;
 use Magento\Framework\Registry;
 
 class Edit extends Action
 {
-    /**
-     * @var PageFactory
-     */
     protected PageFactory $resultPageFactory;
-
-    /**
-     * @var GalleryRepositoryInterface
-     */
     private GalleryRepositoryInterface $galleryRepository;
-
-    /**
-     * @var Registry
-     */
+    private GalleryFactory $galleryFactory;
     private Registry $registry;
 
-    /**
-     * @param Context $context
-     * @param PageFactory $resultPageFactory
-     * @param GalleryRepositoryInterface $galleryRepository
-     * @param Registry $registry
-     */
     public function __construct(
         Context $context,
         PageFactory $resultPageFactory,
         GalleryRepositoryInterface $galleryRepository,
+        GalleryFactory $galleryFactory,
         Registry $registry
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->galleryRepository = $galleryRepository;
+        $this->galleryFactory = $galleryFactory;
         $this->registry = $registry;
         parent::__construct($context);
     }
 
     /**
-     * @return Page
-     * @throws NoSuchEntityException
+     * @return \Magento\Framework\View\Result\Page
      */
-    public function execute(): Page
+    public function execute(): \Magento\Framework\View\Result\Page
     {
         $id = $this->getRequest()->getParam('id');
-        $model = $this->galleryRepository->getById((int)$id);
+
+        if ($id) {
+            try {
+                $model = $this->galleryRepository->getById((int)$id);
+            } catch (NoSuchEntityException) {
+                $this->messageManager->addErrorMessage(__('This gallery no longer exists.'));
+                $this->_redirect('*/*/');
+                return $this->resultPageFactory->create();
+            }
+        } else {
+            $model = $this->galleryFactory->create();
+        }
+
         $this->registry->register('gardenlawn_mediagallery_gallery', $model);
 
         /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('GardenLawn_MediaGallery::items');
-        $resultPage->getConfig()->getTitle()->prepend($model->getId() ? $model->getName() : __('New Gallery'));
+        $title = $model->getId() ? __('Edit Gallery "%1"', $model->getPath()) : __('New Gallery');
+        $resultPage->getConfig()->getTitle()->prepend($title);
+
         return $resultPage;
     }
 }
