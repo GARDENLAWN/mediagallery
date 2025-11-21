@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Gallery;
 
+use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
@@ -66,7 +67,7 @@ class Upload extends Action
             $result['url'] = $this->getRequest()->getUri()->getScheme() . '://' . $this->getRequest()->getHttpHost() . '/media/' . $assetInfo['path'];
             $result['name'] = $assetInfo['name'];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->critical($e);
             $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
         }
