@@ -3,14 +3,39 @@
     <preference for="GardenLawn\MediaGallery\Api\GalleryRepositoryInterface" type="GardenLawn\MediaGallery\Model\GalleryRepository" />
     <preference for="GardenLawn\MediaGallery\Api\Data\GalleryInterface" type="GardenLawn\MediaGallery\Model\Gallery" />
 
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="gardenlawn_mediagallery_sync" xsi:type="object">GardenLawn\MediaGallery\Console\Command\SyncS3Assets</item>
+                <item name="gardenlawn_mediagallery_populate" xsi:type="object">GardenLawn\MediaGallery\Console\Command\PopulateAssetLinks</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="GardenLawn\MediaGallery\Model\S3Adapter">
+        <arguments>
+            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
+        </arguments>
+    </type>
+
     <type name="GardenLawn\MediaGallery\Model\GalleryRepository">
         <arguments>
+            <argument name="galleryFactory" xsi:type="object">GardenLawn\MediaGallery\Model\GalleryFactory\Proxy</argument>
+            <argument name="galleryResource" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Proxy</argument>
             <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
         </arguments>
     </type>
 
-    <!-- AssetManager dependencies will be automatically resolved by Magento based on constructor type hints -->
-    <type name="GardenLawn\MediaGallery\Model\AssetManager" />
+    <type name="GardenLawn\MediaGallery\Model\AssetManager">
+        <arguments>
+            <argument name="galleryRepository" xsi:type="object">GardenLawn\MediaGallery\Api\GalleryRepositoryInterface\Proxy</argument>
+            <argument name="storage" xsi:type="object">Magento\Cms\Model\Wysiwyg\Images\Storage\Proxy</argument>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Proxy</argument>
+            <argument name="assetLinkFactory" xsi:type="object">GardenLawn\MediaGallery\Model\AssetLinkFactory\Proxy</argument>
+            <argument name="assetLinkResource" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Proxy</argument>
+            <argument name="getAssetsByPaths" xsi:type="object">Magento\MediaGalleryApi\Api\GetAssetsByPathsInterface\Proxy</argument>
+        </arguments>
+    </type>
 
     <type name="GardenLawn\MediaGallery\Model\S3AssetSynchronizer">
         <arguments>
@@ -29,7 +54,6 @@
     </virtualType>
     <type name="GardenLawn\MediaGallery\Ui\Component\DataProvider\AssetLink">
         <arguments>
-            <!-- CORRECTED: Removed \Proxy from the virtual type -->
             <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Grid\Collection</argument>
         </arguments>
     </type>

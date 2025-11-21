@@ -6,6 +6,7 @@ namespace GardenLawn\MediaGallery\Block\Adminhtml\AssetLink;
 use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
 use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\CollectionFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 
@@ -26,15 +27,17 @@ class Tiles extends Template
     }
 
     /**
-     * Get the current gallery ID directly from the request.
-     * This is more reliable than using the registry.
+     * Get the current gallery ID from the data provided by the layout XML.
      */
     public function getCurrentGalleryId(): ?int
     {
-        $id = $this->getRequest()->getParam('id');
+        $id = $this->getData('gallery_id');
         return $id ? (int)$id : null;
     }
 
+    /**
+     * @throws NoSuchEntityException
+     */
     public function getAssetLinksData(): array
     {
         $galleryId = $this->getCurrentGalleryId();

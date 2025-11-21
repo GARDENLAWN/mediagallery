@@ -47,8 +47,12 @@ class S3Adapter
         return $this->s3Client;
     }
 
+    /**
+     * @throws Exception
+     */
     public function getFullS3Path(string $path): string
     {
+        $this->getS3Client(); // Ensure client and properties are initialized
         return ($this->s3Prefix ? rtrim($this->s3Prefix, '/') . '/' : '') . 'media/' . ltrim($path, '/');
     }
 

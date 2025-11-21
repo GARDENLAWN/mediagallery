@@ -76,7 +76,6 @@ class PopulateAssetLinks extends Command
             } else {
                 $totalLinks = 0;
                 foreach ($linkedAssets as $galleryId => $data) {
-                    // CORRECTED: Changed 'name' to 'path' to match the array key from AssetLinker.
                     $output->writeln(sprintf($mode . '<info>    Linked %d assets to gallery "%s" (ID: %d).</info>', $data['count'], $data['path'], $galleryId));
                     $totalLinks += $data['count'];
                 }
@@ -92,7 +91,6 @@ class PopulateAssetLinks extends Command
                 } else {
                     $output->writeln(sprintf($mode . '<info>  Pruned %d orphaned galleries.</info>', count($deletedGalleries)));
                     foreach ($deletedGalleries as $galleryPath) {
-                        // CORRECTED: Changed variable name for clarity.
                         $output->writeln(sprintf('  - %s gallery: "%s"', $isDryRun ? 'Would prune' : 'Pruned', $galleryPath));
                     }
                 }
