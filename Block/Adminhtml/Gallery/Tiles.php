@@ -5,7 +5,6 @@ namespace GardenLawn\MediaGallery\Block\Adminhtml\Gallery;
 
 use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection as GalleryCollection;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
 use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\CollectionFactory as AssetLinkCollectionFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -55,14 +54,17 @@ class Tiles extends Template
                 ->setPageSize(1);
 
             $firstAsset = $assetLinkCollection->getFirstItem();
-            $path = $firstAsset->getData('path');
+            $thumbnailPath = $firstAsset->getData('path');
+            $galleryPath = $gallery->getPath();
 
             $galleriesData[] = [
                 'id' => $gallery->getId(),
-                'name' => $gallery->getName(),
+                // CORRECTED: Use getPath() and provide both full path and basename.
+                'path' => $galleryPath,
+                'name' => basename($galleryPath), // Provide just the final part for display
                 'enabled' => (bool)$gallery->getEnabled(),
                 'asset_count' => (int)$gallery->getData('asset_count'),
-                'thumbnail' => $path ? $this->getMediaUrl() . $path : $this->getPlaceholderImage(),
+                'thumbnail' => $thumbnailPath ? $this->getMediaUrl() . $thumbnailPath : $this->getPlaceholderImage(),
                 'edit_url' => $this->getEditUrl((int)$gallery->getId())
             ];
         }

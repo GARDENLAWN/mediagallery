@@ -19,7 +19,11 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles;
 
     <div id="gallery-tiles-grid" class="gallery-tiles-grid">
         <?php foreach ($block->getGalleriesData() as $gallery): ?>
-            <div class="gallery-tile" data-id="<?= $block->escapeHtmlAttr($gallery['id']) ?>" data-enabled="<?= (int)$gallery['enabled'] ?>">
+            <div class="gallery-tile"
+                 data-id="<?= $block->escapeHtmlAttr($gallery['id']) ?>"
+                 data-path="<?= $block->escapeHtmlAttr($gallery['path']) ?>"
+                 data-enabled="<?= (int)$gallery['enabled'] ?>">
+
                 <div class="drag-handle" title="<?= $block->escapeHtmlAttr(__('Drag to reorder')) ?>"></div>
 
                 <div class="tile-status-indicator" title="<?= $gallery['enabled'] ? $block->escapeHtmlAttr(__('Enabled')) : $block->escapeHtmlAttr(__('Disabled')) ?>"></div>

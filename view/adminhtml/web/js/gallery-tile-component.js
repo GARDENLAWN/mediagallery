@@ -56,7 +56,8 @@ define([
         },
 
         _filterTiles: function () {
-            let searchTerm = this.searchInput.val().toLowerCase();
+            // Use the raw search term from the input, without converting to lower case.
+            let searchTerm = this.searchInput.val();
             let visibleCount = 0;
 
             if (searchTerm === '') {
@@ -68,10 +69,17 @@ define([
 
             this.grid.children('.gallery-tile').each(function () {
                 let tile = $(this);
-                let name = tile.find('.tile-name').text().toLowerCase();
+                // CORRECTED: Get the full path from the data-path attribute.
+                let galleryPath = tile.data('path');
 
-                // New, precise filtering logic
-                let isVisible = (name === searchTerm) || name.startsWith(searchTerm + '/');
+                // If galleryPath is not available, skip this tile.
+                if (!galleryPath) {
+                    tile.hide();
+                    return;
+                }
+
+                // The filtering is now precise and case-sensitive against the full path.
+                let isVisible = (galleryPath === searchTerm);
 
                 if (isVisible) {
                     tile.show();
