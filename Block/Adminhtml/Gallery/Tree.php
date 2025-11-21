@@ -32,8 +32,8 @@ class Tree extends Template
     public function getTreeJson(): string
     {
         $collection = $this->galleryCollectionFactory->create();
-        $paths = $collection->getColumnValues('name');
-        // CORRECTED: Use natural, case-insensitive sorting for a user-friendly tree view.
+        // CORRECTED: Column name changed from 'name' to 'path'.
+        $paths = $collection->getColumnValues('path');
         sort($paths, SORT_NATURAL | SORT_FLAG_CASE);
 
         $nodes = [];

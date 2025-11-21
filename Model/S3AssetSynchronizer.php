@@ -32,9 +32,6 @@ class S3AssetSynchronizer
     }
 
     /**
-     * Synchronizes the database with S3, treating S3 as the source of truth.
-     * This version uses simple, case-sensitive comparisons.
-     *
      * @throws Exception
      */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
@@ -46,15 +43,12 @@ class S3AssetSynchronizer
         }
         $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
 
-        // 1. Get the ground truth from S3 (case-sensitive paths).
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
         $s3Paths = array_keys($s3Files);
 
-        // 2. Get the current state from the database.
         $dbAssets = $this->getExistingDbAssets();
         $dbPaths = array_keys($dbAssets);
 
-        // 3. Find what to insert and what to delete.
         $pathsToInsert = array_diff($s3Paths, $dbPaths);
         $pathsToDelete = $enableDeletion ? array_diff($dbPaths, $s3Paths) : [];
         $pathsToUpdate = $forceUpdate ? array_intersect($s3Paths, $dbPaths) : [];
@@ -69,7 +63,7 @@ class S3AssetSynchronizer
             $dbAsset = $dbAssets[$path];
             $s3Asset = $s3Files[$path];
             if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Asset['hash']) {
-                $updateData = $this->prepareAssetData($path, $s3Asset, $bucket, $s3MediaPrefix);
+                $updateData = $this->prepareAssetData($path, $s3Asset, $bucket, $s3MediaPrefix, $dbAsset);
                 $updateData['id'] = $dbAsset['id'];
                 $assetsToUpdate[] = $updateData;
             }
@@ -129,9 +123,6 @@ class S3AssetSynchronizer
         return $this->s3Client;
     }
 
-    /**
-     * @throws Exception
-     */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
@@ -156,23 +147,34 @@ class S3AssetSynchronizer
         return $allFiles;
     }
 
+    /**
+     * CORRECTED: Fetches assets and keys the returned array by the 'path' column.
+     */
     private function getExistingDbAssets(): array
     {
         $connection = $this->resourceConnection->getConnection();
         $tableName = $connection->getTableName('media_gallery_asset');
         $select = $connection->select()->from($tableName, ['id', 'path', 'hash', 'width', 'height']);
-        return $connection->fetchAssoc($select);
+        $rows = $connection->fetchAll($select);
+
+        $assetsByPath = [];
+        foreach ($rows as $row) {
+            // This ensures the array is keyed by the case-sensitive path.
+            $assetsByPath[$row['path']] = $row;
+        }
+        return $assetsByPath;
     }
 
-    private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix): array
+    private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix, ?array $existingAsset = null): array
     {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $filename = pathinfo($path, PATHINFO_BASENAME);
-        $width = 0;
-        $height = 0;
+
+        $width = isset($existingAsset['width']) ? (int)$existingAsset['width'] : 0;
+        $height = isset($existingAsset['height']) ? (int)$existingAsset['height'] : 0;
 
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        if (in_array($extension, $imageExtensions)) {
+        if (($width === 0 || $height === 0) && in_array($extension, $imageExtensions)) {
             try {
                 $fullS3Key = $s3MediaPrefix . $path;
                 $imageUrl = $this->getS3Client()->getObjectUrl($bucket, $fullS3Key);

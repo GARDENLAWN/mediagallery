@@ -24,12 +24,13 @@ class AssetLinker
         $galleryTable = $connection->getTableName('gardenlawn_mediagallery');
 
         $activeDirectoryPaths = $this->getActiveDirectoryPaths($connection);
-        $existingGalleryNames = array_flip($connection->fetchCol($connection->select()->from($galleryTable, ['name'])));
+        // CORRECTED: Column name changed from 'name' to 'path'.
+        $existingGalleryPaths = array_flip($connection->fetchCol($connection->select()->from($galleryTable, ['path'])));
 
         $galleriesToInsert = [];
         foreach ($activeDirectoryPaths as $path) {
-            if (!isset($existingGalleryNames[$path])) {
-                $galleriesToInsert[] = ['name' => $path, 'enabled' => 1, 'sort_order' => 0];
+            if (!isset($existingGalleryPaths[$path])) {
+                $galleriesToInsert[] = ['path' => $path, 'enabled' => 1, 'sort_order' => 0];
             }
         }
 
@@ -38,7 +39,7 @@ class AssetLinker
         }
 
         $connection->insertMultiple($galleryTable, $galleriesToInsert);
-        return array_column($galleriesToInsert, 'name');
+        return array_column($galleriesToInsert, 'path');
     }
 
     public function linkAssetsToGalleries(): array
@@ -55,10 +56,11 @@ class AssetLinker
 
         foreach ($galleries as $gallery) {
             $galleryId = $gallery->getId();
-            $galleryName = $gallery->getName();
-            if (empty($galleryName)) continue;
+            // CORRECTED: Method name changed from 'getName' to 'getPath' to reflect DB change.
+            $galleryPath = $gallery->getPath();
+            if (empty($galleryPath)) continue;
 
-            $assetsToLink = $this->findUnlinkedAssetsForGallery($connection, $galleryId, $galleryName);
+            $assetsToLink = $this->findUnlinkedAssetsForGallery($connection, $galleryId, $galleryPath);
             if (!empty($assetsToLink)) {
                 $currentSortOrder = ($maxSortOrders[$galleryId] ?? 0) + 1;
                 $linksToInsert = [];
@@ -73,7 +75,7 @@ class AssetLinker
                 }
                 if (!empty($linksToInsert)) {
                     $connection->insertMultiple($linkTable, $linksToInsert);
-                    $linksCreated[$galleryId] = ['name' => $galleryName, 'count' => count($linksToInsert)];
+                    $linksCreated[$galleryId] = ['path' => $galleryPath, 'count' => count($linksToInsert)];
                 }
             }
         }
@@ -87,14 +89,15 @@ class AssetLinker
         $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
 
         $activeDirectoryPaths = array_flip($this->getActiveDirectoryPaths($connection));
-        $allGalleries = $connection->fetchAssoc($connection->select()->from($galleryTable, ['id', 'name']));
+        // CORRECTED: Column name changed from 'name' to 'path'.
+        $allGalleries = $connection->fetchAssoc($connection->select()->from($galleryTable, ['id', 'path']));
 
         $galleryIdsToDelete = [];
-        $deletedGalleryNames = [];
+        $deletedGalleryPaths = [];
         foreach ($allGalleries as $gallery) {
-            if (!isset($activeDirectoryPaths[$gallery['name']])) {
+            if (!isset($activeDirectoryPaths[$gallery['path']])) {
                 $galleryIdsToDelete[] = $gallery['id'];
-                $deletedGalleryNames[] = $gallery['name'];
+                $deletedGalleryPaths[] = $gallery['path'];
             }
         }
 
@@ -107,7 +110,7 @@ class AssetLinker
             $connection->delete($galleryTable, ['id IN (?)' => $galleryIdsToDelete]);
         }
 
-        return $deletedGalleryNames;
+        return $deletedGalleryPaths;
     }
 
     private function getActiveDirectoryPaths(AdapterInterface $connection): array
@@ -121,7 +124,6 @@ class AssetLinker
             $pathParts = explode('/', dirname($row['path']));
             $currentPath = '';
             foreach ($pathParts as $part) {
-                // CORRECTED: Use strict comparison to avoid '0' being treated as empty.
                 if ($part === '' || $part === '.') {
                     continue;
                 }
@@ -138,13 +140,13 @@ class AssetLinker
         return $connection->fetchPairs($selectMaxSortOrders);
     }
 
-    private function findUnlinkedAssetsForGallery(AdapterInterface $connection, int $galleryId, string $galleryName): array
+    private function findUnlinkedAssetsForGallery(AdapterInterface $connection, int $galleryId, string $galleryPath): array
     {
         $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
         $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
         $query = $connection->select()
             ->from(['mga' => $mediaGalleryAssetTable], ['id'])
-            ->where('mga.path LIKE ?', $galleryName . '/%')
+            ->where('mga.path LIKE ?', $galleryPath . '/%')
             ->joinLeft(
                 ['gmal' => $linkTable],
                 'gmal.asset_id = mga.id AND gmal.gallery_id = ' . $galleryId,
