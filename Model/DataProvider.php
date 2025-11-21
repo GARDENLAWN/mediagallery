@@ -12,7 +12,7 @@ class DataProvider extends AbstractDataProvider
     /**
      * @var array
      */
-    protected array $loadedData;
+    protected array $loadedData = [];
 
     /**
      * @var Collection
@@ -44,7 +44,7 @@ class DataProvider extends AbstractDataProvider
      */
     public function getData(): array
     {
-        if (isset($this->loadedData)) {
+        if (!empty($this->loadedData)) {
             return $this->loadedData;
         }
         $items = $this->collection->getItems();
