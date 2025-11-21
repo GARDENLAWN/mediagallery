@@ -3,12 +3,10 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Controller\Adminhtml\Gallery;
 
-use Exception;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\Result\Json;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\MediaStorage\Model\File\UploaderFactory;
 use GardenLawn\MediaGallery\Model\AssetManager;
 use Psr\Log\LoggerInterface;
@@ -16,7 +14,7 @@ use Magento\Framework\App\RequestInterface;
 
 class Upload extends Action
 {
-    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::gallery_save';
+    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::gallery_save';
 
     private UploaderFactory $uploaderFactory;
     private AssetManager $assetManager;
@@ -40,18 +38,12 @@ class Upload extends Action
     public function execute(): Json
     {
         try {
-            // The uploader component in the form sends the file under the 'asset_uploader' ID.
             $uploader = $this->uploaderFactory->create(['fileId' => 'asset_uploader[0]']);
             $result = $uploader->save($uploader->getTmpDir());
 
-            // The gallery ID is passed as a parameter from the form's data source.
-            $galleryId = (int)$this->request->getParam('gallery_id');
+            $galleryId = (int)$this->getRequest()->getParam('id');
             if (!$galleryId) {
-                // Try to get it from the main request if it's not in the uploader's params
-                $galleryId = (int)$this->getRequest()->getParam('id');
-            }
-            if (!$galleryId) {
-                throw new LocalizedException(__('Gallery ID is missing.'));
+                throw new \Magento\Framework\Exception\LocalizedException(__('Gallery ID is missing.'));
             }
 
             $fileData = [
@@ -59,15 +51,13 @@ class Upload extends Action
                 'name' => $result['name']
             ];
 
-            $assetInfo = $this->assetManager->processUpload($fileData, $galleryId);
+            $this->assetManager->processUpload($fileData, $galleryId);
 
-            // Prepare the response expected by the file uploader component
-            $result['id'] = $assetInfo['id'];
-            $result['file'] = $assetInfo['path'];
-            $result['url'] = $this->getRequest()->getUri()->getScheme() . '://' . $this->getRequest()->getHttpHost() . '/media/' . $assetInfo['path'];
-            $result['name'] = $assetInfo['name'];
+            // On success, we don't need to return complex data,
+            // as we will just reload the page on the frontend.
+            $result = ['success' => true];
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->critical($e);
             $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
         }

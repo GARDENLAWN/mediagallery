@@ -112,24 +112,23 @@
                     <item name="formElement" xsi:type="string">fileUploader</item>
                     <item name="uploaderConfig" xsi:type="array">
                         <item name="url" xsi:type="url" path="gardenlawn_mediagallery/gallery/upload"/>
+                        <item name="params" xsi:type="array">
+                            <item name="gallery_id" xsi:type="string">${ $.provider }:data.id</item>
+                        </item>
+                    </item>
+                    <item name="listeners" xsi:type="array">
+                        <item name="onFileUploaded" xsi:type="string">setLocation.defer(window.location.href, 100)</item>
                     </item>
                 </item>
             </argument>
         </field>
-        <insertListing name="gardenlawn_mediagallery_asset_link_listing">
+        <container name="asset_tiles_container" >
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="autoRender" xsi:type="boolean">true</item>
-                    <item name="ns" xsi:type="string">gardenlawn_mediagallery_asset_link_listing</item>
-                    <item name="externalProvider" xsi:type="string">${ $.ns }.gardenlawn_mediagallery_asset_link_listing_data_source</item>
-                    <item name="imports" xsi:type="array">
-                        <item name="galleryId" xsi:type="string">${ $.provider }:data.id</item>
-                    </item>
-                    <item name="exports" xsi:type="array">
-                        <item name="galleryId" xsi:type="string">${ $.externalProvider }:params.gallery_id</item>
-                    </item>
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="content" xsi:type="string" />
                 </item>
             </argument>
-        </insertListing>
+        </container>
     </fieldset>
 </form>
