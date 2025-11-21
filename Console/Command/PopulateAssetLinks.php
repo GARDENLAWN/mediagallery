@@ -2,30 +2,27 @@
 
 namespace GardenLawn\MediaGallery\Console\Command;
 
+use Magento\Framework\Console\Cli;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Magento\Framework\App\ResourceConnection;
 use GardenLawn\MediaGallery\Model\AssetLinker;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\InputOption;
 
 class PopulateAssetLinks extends Command
 {
-    const DRY_RUN_OPTION = 'dry-run';
-    const WITH_PRUNE_OPTION = 'with-prune';
+    const string DRY_RUN_OPTION = 'dry-run';
+    const string WITH_PRUNE_OPTION = 'with-prune';
 
-    protected ResourceConnection $resourceConnection;
     protected AssetLinker $assetLinker;
     protected LoggerInterface $logger;
 
     public function __construct(
-        ResourceConnection $resourceConnection,
         AssetLinker        $assetLinker,
         LoggerInterface    $logger,
         string             $name = null
     ) {
-        $this->resourceConnection = $resourceConnection;
         $this->assetLinker = $assetLinker;
         $this->logger = $logger;
         parent::__construct($name);
@@ -56,11 +53,6 @@ class PopulateAssetLinks extends Command
         $withPrune = $input->getOption(self::WITH_PRUNE_OPTION);
         $mode = $isDryRun ? '<comment>[DRY RUN]</comment> ' : '';
 
-        $connection = $this->resourceConnection->getConnection();
-        if (!$isDryRun) {
-            $connection->beginTransaction();
-        }
-
         try {
             // Step 1: Populate Galleries from Paths
             $output->writeln($mode . '<info>Step 1: Populating galleries from asset paths...</info>');
@@ -70,8 +62,8 @@ class PopulateAssetLinks extends Command
             } else {
                 $output->writeln(sprintf($mode . '<info>  Created %d new galleries.</info>', count($createdGalleries)));
                 if ($isDryRun) {
-                    foreach ($createdGalleries as $galleryName) {
-                        $output->writeln(sprintf('  - Would create gallery: "%s"', $galleryName));
+                    foreach ($createdGalleries as $galleryPath) {
+                        $output->writeln(sprintf('  - Would create gallery: "%s"', $galleryPath));
                     }
                 }
             }
@@ -84,7 +76,8 @@ class PopulateAssetLinks extends Command
             } else {
                 $totalLinks = 0;
                 foreach ($linkedAssets as $galleryId => $data) {
-                    $output->writeln(sprintf($mode . '<info>    Linked %d assets to gallery "%s" (ID: %d).</info>', $data['count'], $data['name'], $galleryId));
+                    // CORRECTED: Changed 'name' to 'path' to match the array key from AssetLinker.
+                    $output->writeln(sprintf($mode . '<info>    Linked %d assets to gallery "%s" (ID: %d).</info>', $data['count'], $data['path'], $galleryId));
                     $totalLinks += $data['count'];
                 }
                 $output->writeln(sprintf($mode . '<info>  Finished linking. Total new links: %d</info>', $totalLinks));
@@ -98,25 +91,20 @@ class PopulateAssetLinks extends Command
                     $output->writeln($mode . '<comment>  No orphaned galleries to prune.</comment>');
                 } else {
                     $output->writeln(sprintf($mode . '<info>  Pruned %d orphaned galleries.</info>', count($deletedGalleries)));
-                    foreach ($deletedGalleries as $galleryName) {
-                        $output->writeln(sprintf('  - %s gallery: "%s"', $isDryRun ? 'Would prune' : 'Pruned', $galleryName));
+                    foreach ($deletedGalleries as $galleryPath) {
+                        // CORRECTED: Changed variable name for clarity.
+                        $output->writeln(sprintf('  - %s gallery: "%s"', $isDryRun ? 'Would prune' : 'Pruned', $galleryPath));
                     }
                 }
             }
 
-            if (!$isDryRun) {
-                $connection->commit();
-            }
             $output->writeln($mode . '<info>Population script finished successfully.</info>');
-            return \Magento\Framework\Console\Cli::RETURN_SUCCESS;
+            return Cli::RETURN_SUCCESS;
 
         } catch (\Exception $e) {
-            if (!$isDryRun) {
-                $connection->rollBack();
-            }
             $output->writeln('<error>An error occurred: ' . $e->getMessage() . '</error>');
             $this->logger->critical('MediaGallery CLI Error: ' . $e->getMessage(), ['exception' => $e]);
-            return \Magento\Framework\Console\Cli::RETURN_FAILURE;
+            return Cli::RETURN_FAILURE;
         }
     }
 }
