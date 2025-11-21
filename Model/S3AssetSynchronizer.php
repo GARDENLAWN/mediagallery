@@ -5,8 +5,6 @@ use Exception;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
-use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
 class S3AssetSynchronizer
@@ -34,8 +32,9 @@ class S3AssetSynchronizer
     }
 
     /**
-     * @throws FileSystemException
-     * @throws RuntimeException
+     * Synchronizes the database with S3, treating S3 as the source of truth.
+     * This version uses simple, case-sensitive comparisons.
+     *
      * @throws Exception
      */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
@@ -47,63 +46,33 @@ class S3AssetSynchronizer
         }
         $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
 
-        // S3 is the source of truth. Paths are case-sensitive.
+        // 1. Get the ground truth from S3 (case-sensitive paths).
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
-        // Fetch all DB assets, keyed by their actual, case-sensitive path.
-        $dbAssets = $this->getExistingDbAssets();
+        $s3Paths = array_keys($s3Files);
 
-        // Create a lookup map with lowercase paths to find case-mismatched entries.
-        $dbAssetsByLowercasePath = [];
-        foreach ($dbAssets as $path => $asset) {
-            $dbAssetsByLowercasePath[strtolower($path)] = $asset;
-        }
+        // 2. Get the current state from the database.
+        $dbAssets = $this->getExistingDbAssets();
+        $dbPaths = array_keys($dbAssets);
+
+        // 3. Find what to insert and what to delete.
+        $pathsToInsert = array_diff($s3Paths, $dbPaths);
+        $pathsToDelete = $enableDeletion ? array_diff($dbPaths, $s3Paths) : [];
+        $pathsToUpdate = $forceUpdate ? array_intersect($s3Paths, $dbPaths) : [];
 
         $assetsToInsert = [];
-        $assetsToUpdate = [];
-
-        foreach ($s3Files as $s3Path => $s3Data) {
-            $lowercaseS3Path = strtolower($s3Path);
-
-            // 1. Perfect match exists? Do nothing unless forceUpdate is on.
-            if (isset($dbAssets[$s3Path])) {
-                if ($forceUpdate) {
-                    $dbAsset = $dbAssets[$s3Path];
-                    if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Data['hash']) {
-                        $updateData = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
-                        $updateData['id'] = $dbAsset['id'];
-                        $assetsToUpdate[] = $updateData;
-                    }
-                }
-                continue;
-            }
-
-            // 2. No perfect match. Is there a case-mismatched match?
-            if (isset($dbAssetsByLowercasePath[$lowercaseS3Path])) {
-                $dbAsset = $dbAssetsByLowercasePath[$lowercaseS3Path];
-                // This is an entry with incorrect casing. Correct its path.
-                $updateData = ['path' => $s3Path]; // The primary fix!
-
-                if ($forceUpdate) {
-                    // Also update metadata if needed
-                    $preparedData = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
-                    $updateData = array_merge($preparedData, $updateData);
-                }
-
-                $updateData['id'] = $dbAsset['id'];
-                $assetsToUpdate[] = $updateData;
-                continue;
-            }
-
-            // 3. No match at all. This is a new file.
-            $assetsToInsert[] = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
+        foreach ($pathsToInsert as $path) {
+            $assetsToInsert[] = $this->prepareAssetData($path, $s3Files[$path], $bucket, $s3MediaPrefix);
         }
 
-        $assetsToDelete = [];
-        if ($enableDeletion) {
-            // An asset should be deleted if its path does not exist in S3's list of paths.
-            $s3Paths = array_keys($s3Files);
-            $dbPaths = array_keys($dbAssets);
-            $assetsToDelete = array_diff($dbPaths, $s3Paths);
+        $assetsToUpdate = [];
+        foreach ($pathsToUpdate as $path) {
+            $dbAsset = $dbAssets[$path];
+            $s3Asset = $s3Files[$path];
+            if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Asset['hash']) {
+                $updateData = $this->prepareAssetData($path, $s3Asset, $bucket, $s3MediaPrefix);
+                $updateData['id'] = $dbAsset['id'];
+                $assetsToUpdate[] = $updateData;
+            }
         }
 
         if (!$dryRun) {
@@ -127,21 +96,19 @@ class S3AssetSynchronizer
                     throw $e;
                 }
             }
-            if ($enableDeletion && !empty($assetsToDelete)) {
-                $connection->delete($tableName, ['path IN (?)' => $assetsToDelete]);
+            if (!empty($pathsToDelete)) {
+                $connection->delete($tableName, ['path IN (?)' => $pathsToDelete]);
             }
         }
 
         return [
             'inserted' => $assetsToInsert,
             'updated' => $assetsToUpdate,
-            'deleted' => array_values($assetsToDelete)
+            'deleted' => array_values($pathsToDelete)
         ];
     }
 
     /**
-     * @throws FileSystemException
-     * @throws RuntimeException
      * @throws Exception
      */
     private function getS3Client(): S3Client
@@ -163,8 +130,7 @@ class S3AssetSynchronizer
     }
 
     /**
-     * @throws FileSystemException
-     * @throws RuntimeException
+     * @throws Exception
      */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
@@ -190,23 +156,12 @@ class S3AssetSynchronizer
         return $allFiles;
     }
 
-    /**
-     * Fetches assets and keys them by their original, case-sensitive path.
-     */
     private function getExistingDbAssets(): array
     {
         $connection = $this->resourceConnection->getConnection();
         $tableName = $connection->getTableName('media_gallery_asset');
         $select = $connection->select()->from($tableName, ['id', 'path', 'hash', 'width', 'height']);
-        $rows = $connection->fetchAll($select);
-
-        $assetsByPath = [];
-        foreach ($rows as $row) {
-            if (!isset($assetsByPath[$row['path']])) {
-                $assetsByPath[$row['path']] = $row;
-            }
-        }
-        return $assetsByPath;
+        return $connection->fetchAssoc($select);
     }
 
     private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix): array
