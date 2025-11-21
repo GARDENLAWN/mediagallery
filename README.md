@@ -22,7 +22,7 @@ Synchronizuje tabelę `media_gallery_asset` z zawartością bucketa S3.
 
     *Przykład pełnej synchronizacji (dodawanie, aktualizacja, usuwanie):*
     ```sh
-    bin/magento gardenlawn:mediagallery:sync-s3 --with-delete --force-update
+    bin/magento gardenlawn:mediagallery:sync-s3 --with-delete --force-update --dry-run
     ```
 
 ### 2. `gardenlawn:mediagallery:populate-all`
@@ -40,5 +40,5 @@ Tworzy galerie na podstawie folderów, linkuje do nich zasoby i opcjonalnie czy�
 
     *Przykład użycia z czyszczeniem galerii:*
     ```sh
-    bin/magento gardenlawn:mediagallery:populate-all --with-prune
+    bin/magento gardenlawn:mediagallery:populate-all --with-prune --dry-run
     ```

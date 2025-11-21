@@ -1,19 +1,22 @@
 <?php
 namespace GardenLawn\MediaGallery\Model;
 
+use Exception;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\DeploymentConfig;
 use Aws\S3\S3Client;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 
 class S3AssetSynchronizer
 {
-    const CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
-    const CONFIG_PATH_REGION = 'remote_storage/config/region';
-    const CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
-    const CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
-    const CONFIG_PATH_PREFIX = 'remote_storage/prefix';
-    const MEDIA_DIR = 'media';
+    const string CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
+    const string CONFIG_PATH_REGION = 'remote_storage/config/region';
+    const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
+    const string CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
+    const string CONFIG_PATH_PREFIX = 'remote_storage/prefix';
+    const string MEDIA_DIR = 'media';
 
     protected ResourceConnection $resourceConnection;
     protected DeploymentConfig $deploymentConfig;
@@ -30,37 +33,77 @@ class S3AssetSynchronizer
         $this->logger = $logger;
     }
 
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     * @throws Exception
+     */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
     {
         $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
         $envPrefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
         if (empty($bucket)) {
-            throw new \Exception('S3 bucket name is not configured in env.php.');
+            throw new Exception('S3 bucket name is not configured in env.php.');
         }
         $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
 
+        // S3 is the source of truth. Paths are case-sensitive.
         $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
-        $dbAssets = $this->getExistingDbAssets(); // Correctly fetched assets by path
+        // Fetch all DB assets, keyed by their actual, case-sensitive path.
+        $dbAssets = $this->getExistingDbAssets();
+
+        // Create a lookup map with lowercase paths to find case-mismatched entries.
+        $dbAssetsByLowercasePath = [];
+        foreach ($dbAssets as $path => $asset) {
+            $dbAssetsByLowercasePath[strtolower($path)] = $asset;
+        }
 
         $assetsToInsert = [];
         $assetsToUpdate = [];
-        $assetsToDelete = [];
 
-        foreach ($s3Files as $path => $s3Data) {
-            if (!isset($dbAssets[$path])) {
-                $assetsToInsert[] = $this->prepareAssetData($path, $s3Data, $bucket, $s3MediaPrefix);
-            } elseif ($forceUpdate) {
-                $dbAsset = $dbAssets[$path];
-                if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Data['hash']) {
-                    $updateData = $this->prepareAssetData($path, $s3Data, $bucket, $s3MediaPrefix);
-                    $updateData['id'] = $dbAsset['id'];
-                    $assetsToUpdate[] = $updateData;
+        foreach ($s3Files as $s3Path => $s3Data) {
+            $lowercaseS3Path = strtolower($s3Path);
+
+            // 1. Perfect match exists? Do nothing unless forceUpdate is on.
+            if (isset($dbAssets[$s3Path])) {
+                if ($forceUpdate) {
+                    $dbAsset = $dbAssets[$s3Path];
+                    if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Data['hash']) {
+                        $updateData = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
+                        $updateData['id'] = $dbAsset['id'];
+                        $assetsToUpdate[] = $updateData;
+                    }
                 }
+                continue;
             }
+
+            // 2. No perfect match. Is there a case-mismatched match?
+            if (isset($dbAssetsByLowercasePath[$lowercaseS3Path])) {
+                $dbAsset = $dbAssetsByLowercasePath[$lowercaseS3Path];
+                // This is an entry with incorrect casing. Correct its path.
+                $updateData = ['path' => $s3Path]; // The primary fix!
+
+                if ($forceUpdate) {
+                    // Also update metadata if needed
+                    $preparedData = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
+                    $updateData = array_merge($preparedData, $updateData);
+                }
+
+                $updateData['id'] = $dbAsset['id'];
+                $assetsToUpdate[] = $updateData;
+                continue;
+            }
+
+            // 3. No match at all. This is a new file.
+            $assetsToInsert[] = $this->prepareAssetData($s3Path, $s3Data, $bucket, $s3MediaPrefix);
         }
 
+        $assetsToDelete = [];
         if ($enableDeletion) {
-            $assetsToDelete = $this->findOrphanedAssets(array_keys($s3Files), $dbAssets);
+            // An asset should be deleted if its path does not exist in S3's list of paths.
+            $s3Paths = array_keys($s3Files);
+            $dbPaths = array_keys($dbAssets);
+            $assetsToDelete = array_diff($dbPaths, $s3Paths);
         }
 
         if (!$dryRun) {
@@ -79,7 +122,7 @@ class S3AssetSynchronizer
                         $connection->update($tableName, $asset, ['id = ?' => $id]);
                     }
                     $connection->commit();
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $connection->rollBack();
                     throw $e;
                 }
@@ -92,22 +135,15 @@ class S3AssetSynchronizer
         return [
             'inserted' => $assetsToInsert,
             'updated' => $assetsToUpdate,
-            'deleted' => $assetsToDelete
+            'deleted' => array_values($assetsToDelete)
         ];
     }
 
-    private function findOrphanedAssets(array $s3FilePaths, array $dbAssets): array
-    {
-        $s3PathsMap = array_flip($s3FilePaths);
-        $orphanedPaths = [];
-        foreach ($dbAssets as $dbPath => $dbData) {
-            if (!isset($s3PathsMap[$dbPath])) {
-                $orphanedPaths[] = $dbPath;
-            }
-        }
-        return $orphanedPaths;
-    }
-
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     * @throws Exception
+     */
     private function getS3Client(): S3Client
     {
         if ($this->s3Client === null) {
@@ -115,7 +151,7 @@ class S3AssetSynchronizer
             $secret = $this->deploymentConfig->get(self::CONFIG_PATH_SECRET);
             $region = $this->deploymentConfig->get(self::CONFIG_PATH_REGION);
             if (!$key || !$secret || !$region) {
-                throw new \Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
+                throw new Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
             }
             $this->s3Client = new S3Client([
                 'version' => 'latest',
@@ -126,6 +162,10 @@ class S3AssetSynchronizer
         return $this->s3Client;
     }
 
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     */
     private function getAllS3Files(string $bucket, string $prefix): array
     {
         $s3Client = $this->getS3Client();
@@ -151,8 +191,7 @@ class S3AssetSynchronizer
     }
 
     /**
-     * CORRECTED: Fetches assets and keys them by their path.
-     * It will only keep the first encountered record for a given path (implicitly the one with the lowest ID).
+     * Fetches assets and keys them by their original, case-sensitive path.
      */
     private function getExistingDbAssets(): array
     {
@@ -163,8 +202,6 @@ class S3AssetSynchronizer
 
         $assetsByPath = [];
         foreach ($rows as $row) {
-            // If a duplicate path exists in the DB, we only want to consider the first one we find.
-            // This prevents the synchronizer from getting confused by existing bad data.
             if (!isset($assetsByPath[$row['path']])) {
                 $assetsByPath[$row['path']] = $row;
             }
@@ -189,7 +226,7 @@ class S3AssetSynchronizer
                     $width = (int)$imageSizeInfo[0];
                     $height = (int)$imageSizeInfo[1];
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->logger->warning('Could not get image size for ' . $path . ': ' . $e->getMessage());
             }
         }
