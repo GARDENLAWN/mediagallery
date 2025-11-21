@@ -38,17 +38,17 @@ class Gallery extends AbstractModel implements GalleryInterface
     /**
      * @inheritDoc
      */
-    public function getName(): ?string
+    public function getPath(): ?string
     {
-        return $this->getData(self::NAME);
+        return $this->getData(self::PATH);
     }
 
     /**
      * @inheritDoc
      */
-    public function setName(string $name): GalleryInterface
+    public function setPath(string $path): GalleryInterface
     {
-        return $this->setData(self::NAME, $name);
+        return $this->setData(self::PATH, $path);
     }
 
     /**

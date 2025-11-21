@@ -8,7 +8,7 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles;
 
     <div class="gallery-toolbar">
         <div class="gallery-search">
-            <input type="text" id="gallery-search-input" class="admin__control-text" placeholder="<?= $block->escapeHtmlAttr(__('Search by name...')) ?>"/>
+            <input type="text" id="gallery-search-input" class="admin__control-text" placeholder="<?= $block->escapeHtmlAttr(__('Search by path...')) ?>"/>
         </div>
         <div class="gallery-actions">
             <button onclick="location.href = '<?= $block->escapeUrl($block->getAddNewGalleryUrl()) ?>'" class="action-primary">

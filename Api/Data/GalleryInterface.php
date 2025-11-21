@@ -9,7 +9,7 @@ interface GalleryInterface
      * Constants for keys of data array.
      */
     public const string ID = 'id';
-    public const string NAME = 'name';
+    public const string PATH = 'path';
     public const string SORT_ORDER = 'sort_order';
     public const string ENABLED = 'enabled';
 
@@ -29,19 +29,19 @@ interface GalleryInterface
     public function setId(int $id): self;
 
     /**
-     * Get name
+     * Get path
      *
      * @return string|null
      */
-    public function getName(): ?string;
+    public function getPath(): ?string;
 
     /**
-     * Set name
+     * Set path
      *
-     * @param string $name
+     * @param string $path
      * @return $this
      */
-    public function setName(string $name): self;
+    public function setPath(string $path): self;
 
     /**
      * Get sort order
