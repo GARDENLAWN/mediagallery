@@ -24,7 +24,6 @@ class AssetLinker
         $galleryTable = $connection->getTableName('gardenlawn_mediagallery');
 
         $activeDirectoryPaths = $this->getActiveDirectoryPaths($connection);
-        // CORRECTED: Column name changed from 'name' to 'path'.
         $existingGalleryPaths = array_flip($connection->fetchCol($connection->select()->from($galleryTable, ['path'])));
 
         $galleriesToInsert = [];
@@ -56,7 +55,6 @@ class AssetLinker
 
         foreach ($galleries as $gallery) {
             $galleryId = $gallery->getId();
-            // CORRECTED: Method name changed from 'getName' to 'getPath' to reflect DB change.
             $galleryPath = $gallery->getPath();
             if (empty($galleryPath)) continue;
 
@@ -89,7 +87,6 @@ class AssetLinker
         $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
 
         $activeDirectoryPaths = array_flip($this->getActiveDirectoryPaths($connection));
-        // CORRECTED: Column name changed from 'name' to 'path'.
         $allGalleries = $connection->fetchAssoc($connection->select()->from($galleryTable, ['id', 'path']));
 
         $galleryIdsToDelete = [];
@@ -113,6 +110,10 @@ class AssetLinker
         return $deletedGalleryPaths;
     }
 
+    /**
+     * CORRECTED: This method now only returns the direct parent directory of each asset,
+     * preventing the creation of unwanted parent galleries (e.g., 'catalog', 'catalog/product').
+     */
     private function getActiveDirectoryPaths(AdapterInterface $connection): array
     {
         $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
@@ -121,16 +122,17 @@ class AssetLinker
 
         $directoryPaths = [];
         while ($row = $assetPathStream->fetch()) {
-            $pathParts = explode('/', dirname($row['path']));
-            $currentPath = '';
-            foreach ($pathParts as $part) {
-                if ($part === '' || $part === '.') {
-                    continue;
-                }
-                $currentPath .= (empty($currentPath) ? '' : '/') . $part;
-                $directoryPaths[$currentPath] = true;
+            if (empty($row['path'])) {
+                continue;
+            }
+            // Get the immediate parent directory of the asset's path.
+            $dir = dirname($row['path']);
+            // Ensure it's a valid directory and not the root '.'
+            if ($dir && $dir !== '.') {
+                $directoryPaths[$dir] = true;
             }
         }
+        // Return a unique list of directory paths.
         return array_keys($directoryPaths);
     }
 
