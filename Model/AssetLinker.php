@@ -110,10 +110,6 @@ class AssetLinker
         return $deletedGalleryPaths;
     }
 
-    /**
-     * CORRECTED: This method now only returns the direct parent directory of each asset,
-     * preventing the creation of unwanted parent galleries (e.g., 'catalog', 'catalog/product').
-     */
     private function getActiveDirectoryPaths(AdapterInterface $connection): array
     {
         $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
@@ -125,14 +121,11 @@ class AssetLinker
             if (empty($row['path'])) {
                 continue;
             }
-            // Get the immediate parent directory of the asset's path.
             $dir = dirname($row['path']);
-            // Ensure it's a valid directory and not the root '.'
             if ($dir && $dir !== '.') {
                 $directoryPaths[$dir] = true;
             }
         }
-        // Return a unique list of directory paths.
         return array_keys($directoryPaths);
     }
 
@@ -148,7 +141,8 @@ class AssetLinker
         $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
         $query = $connection->select()
             ->from(['mga' => $mediaGalleryAssetTable], ['id'])
-            ->where('mga.path LIKE ?', $galleryPath . '/%')
+            // FINAL FIX: Use LIKE BINARY for a case-sensitive path comparison.
+            ->where('mga.path LIKE BINARY ?', $galleryPath . '/%')
             ->joinLeft(
                 ['gmal' => $linkTable],
                 'gmal.asset_id = mga.id AND gmal.gallery_id = ' . $galleryId,
