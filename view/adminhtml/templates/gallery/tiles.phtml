@@ -8,10 +8,10 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles;
 
     <div class="gallery-toolbar">
         <div class="gallery-search">
-            <input type="text" id="gallery-search-input" class="admin__control-text" placeholder="<?= $block->escapeHtmlAttr(__('Search by path...')) ?>"/>
+            <label for="gallery-search-input">Search</label><input type="text" id="gallery-search-input" class="admin__control-text" placeholder="<?= $block->escapeHtmlAttr(__('Search by path...')) ?>"/>
         </div>
         <div class="gallery-actions">
-            <button onclick="location.href = '<?= $block->escapeUrl($block->getAddNewGalleryUrl()) ?>'" class="action-primary">
+            <button id="add-new-gallery-button" class="action-primary">
                 <?= $block->escapeHtml(__('Add New Gallery')) ?>
             </button>
         </div>
@@ -60,3 +60,27 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tiles;
         </div>
     </div>
 </div>
+
+<script>
+    require(['jquery'], function($) {
+        let currentFilterPath = '';
+
+        // Listen for the tree filter update and store the path
+        $('body').on('gallery:filter:update', function(e, filterValue) {
+            currentFilterPath = filterValue;
+        });
+
+        // Attach a click handler to the new gallery button
+        $('#add-new-gallery-button').on('click', function() {
+            let baseUrl = '<?= $block->escapeUrl($block->getAddNewGalleryUrl()) ?>';
+            let finalUrl = baseUrl;
+
+            if (currentFilterPath) {
+                // Append the path, Base64 encoded to handle slashes safely
+                finalUrl += 'path/' + btoa(currentFilterPath) + '/';
+            }
+
+            window.location.href = finalUrl;
+        });
+    });
+</script>

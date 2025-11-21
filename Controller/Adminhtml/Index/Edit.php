@@ -39,17 +39,25 @@ class Edit extends Action
     public function execute(): \Magento\Framework\View\Result\Page
     {
         $id = $this->getRequest()->getParam('id');
+        $model = $this->galleryFactory->create();
 
         if ($id) {
             try {
                 $model = $this->galleryRepository->getById((int)$id);
-            } catch (NoSuchEntityException) {
+            } catch (NoSuchEntityException $e) {
                 $this->messageManager->addErrorMessage(__('This gallery no longer exists.'));
                 $this->_redirect('*/*/');
                 return $this->resultPageFactory->create();
             }
         } else {
-            $model = $this->galleryFactory->create();
+            // For new galleries, check for a pre-filled path from the tree.
+            $encodedPath = $this->getRequest()->getParam('path');
+            if ($encodedPath) {
+                $decodedPath = base64_decode($encodedPath, true);
+                if ($decodedPath) {
+                    $model->setPath($decodedPath . '/');
+                }
+            }
         }
 
         $this->registry->register('gardenlawn_mediagallery_gallery', $model);
