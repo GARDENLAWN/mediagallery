@@ -29,7 +29,8 @@
     </virtualType>
     <type name="GardenLawn\MediaGallery\Ui\Component\DataProvider\AssetLink">
         <arguments>
-            <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Grid\Collection\Proxy</argument>
+            <!-- CORRECTED: Removed \Proxy from the virtual type -->
+            <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Grid\Collection</argument>
         </arguments>
     </type>
 </config>
