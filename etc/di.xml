@@ -15,6 +15,16 @@
         </arguments>
     </type>
 
+    <!-- Explicit definition for S3AssetSynchronizer to resolve DI issues -->
+    <type name="GardenLawn\MediaGallery\Model\S3AssetSynchronizer">
+        <arguments>
+            <argument name="resourceConnection" xsi:type="object">Magento\Framework\App\ResourceConnection\Proxy</argument>
+            <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface\Proxy</argument>
+            <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
+            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
+        </arguments>
+    </type>
+
     <virtualType name="GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
             <argument name="mainTable" xsi:type="string">gardenlawn_mediagallery_asset_link</argument>

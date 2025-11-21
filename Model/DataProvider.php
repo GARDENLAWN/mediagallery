@@ -5,7 +5,6 @@ namespace GardenLawn\MediaGallery\Model;
 
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory;
 use Magento\Ui\DataProvider\AbstractDataProvider;
-use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Collection;
 use Magento\Framework\Registry;
 
 class DataProvider extends AbstractDataProvider
