@@ -1,34 +1,33 @@
 <?php
+declare(strict_types=1);
+
 namespace GardenLawn\MediaGallery\Model;
 
 use Exception;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\App\DeploymentConfig;
-use Aws\S3\S3Client;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
+use Aws\S3\S3Client; // Keep for getAllS3Files method if not moved to adapter
+use Magento\Framework\App\DeploymentConfig; // Keep for getAllS3Files method if not moved to adapter
 
 class S3AssetSynchronizer
 {
-    const string CONFIG_PATH_BUCKET = 'remote_storage/config/bucket';
-    const string CONFIG_PATH_REGION = 'remote_storage/config/region';
-    const string CONFIG_PATH_KEY = 'remote_storage/config/credentials/key';
-    const string CONFIG_PATH_SECRET = 'remote_storage/config/credentials/secret';
-    const string CONFIG_PATH_PREFIX = 'remote_storage/prefix';
-    const string MEDIA_DIR = 'media';
-
-    protected ResourceConnection $resourceConnection;
-    protected DeploymentConfig $deploymentConfig;
-    protected LoggerInterface $logger;
-    private ?S3Client $s3Client = null;
+    private ResourceConnection $resourceConnection;
+    private LoggerInterface $logger;
+    private S3Adapter $s3Adapter;
+    private DeploymentConfig $deploymentConfig; // Keep for direct access if needed by S3Adapter's internal logic
 
     public function __construct(
         ResourceConnection $resourceConnection,
-        DeploymentConfig   $deploymentConfig,
-        LoggerInterface    $logger
+        LoggerInterface $logger,
+        S3Adapter $s3Adapter,
+        DeploymentConfig $deploymentConfig
     ) {
         $this->resourceConnection = $resourceConnection;
-        $this->deploymentConfig = $deploymentConfig;
         $this->logger = $logger;
+        $this->s3Adapter = $s3Adapter;
+        $this->deploymentConfig = $deploymentConfig; // Keep for now
     }
 
     /**
@@ -36,14 +35,8 @@ class S3AssetSynchronizer
      */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
     {
-        $bucket = $this->deploymentConfig->get(self::CONFIG_PATH_BUCKET);
-        $envPrefix = $this->deploymentConfig->get(self::CONFIG_PATH_PREFIX, '');
-        if (empty($bucket)) {
-            throw new Exception('S3 bucket name is not configured in env.php.');
-        }
-        $s3MediaPrefix = $envPrefix ? rtrim($envPrefix, '/') . '/' . self::MEDIA_DIR . '/' : self::MEDIA_DIR . '/';
-
-        $s3Files = $this->getAllS3Files($bucket, $s3MediaPrefix);
+        // Logic remains the same, but S3 interactions could be proxied if adapter is expanded
+        $s3Files = $this->getAllS3Files();
         $s3Paths = array_keys($s3Files);
 
         $dbAssets = $this->getExistingDbAssets();
@@ -55,7 +48,7 @@ class S3AssetSynchronizer
 
         $assetsToInsert = [];
         foreach ($pathsToInsert as $path) {
-            $assetsToInsert[] = $this->prepareAssetData($path, $s3Files[$path], $bucket, $s3MediaPrefix);
+            $assetsToInsert[] = $this->prepareAssetData($path, $s3Files[$path]);
         }
 
         $assetsToUpdate = [];
@@ -63,7 +56,7 @@ class S3AssetSynchronizer
             $dbAsset = $dbAssets[$path];
             $s3Asset = $s3Files[$path];
             if ($dbAsset['hash'] === null || $dbAsset['width'] == 0 || $dbAsset['hash'] !== $s3Asset['hash']) {
-                $updateData = $this->prepareAssetData($path, $s3Asset, $bucket, $s3MediaPrefix, $dbAsset);
+                $updateData = $this->prepareAssetData($path, $s3Asset, $dbAsset);
                 $updateData['id'] = $dbAsset['id'];
                 $assetsToUpdate[] = $updateData;
             }
@@ -102,30 +95,42 @@ class S3AssetSynchronizer
         ];
     }
 
+    // This method is specific to the synchronizer, so it's okay it stays here,
+    // but it should use the S3 client from the adapter if possible.
+    // For now, keeping its own client logic to avoid breaking anything.
     /**
+     * @throws FileSystemException
+     * @throws RuntimeException
      * @throws Exception
      */
     private function getS3Client(): S3Client
     {
-        if ($this->s3Client === null) {
-            $key = $this->deploymentConfig->get(self::CONFIG_PATH_KEY);
-            $secret = $this->deploymentConfig->get(self::CONFIG_PATH_SECRET);
-            $region = $this->deploymentConfig->get(self::CONFIG_PATH_REGION);
-            if (!$key || !$secret || !$region) {
-                throw new Exception('S3 credentials (key, secret, region) are not fully configured in env.php.');
-            }
-            $this->s3Client = new S3Client([
-                'version' => 'latest',
-                'region' => $region,
-                'credentials' => ['key' => $key, 'secret' => $secret],
-            ]);
+        $key = $this->deploymentConfig->get('remote_storage/config/credentials/key');
+        $secret = $this->deploymentConfig->get('remote_storage/config/credentials/secret');
+        $region = $this->deploymentConfig->get('remote_storage/config/region');
+        $bucket = $this->deploymentConfig->get('remote_storage/config/bucket');
+
+        if (!$key || !$secret || !$region || !$bucket) {
+            throw new Exception('S3 credentials are not fully configured in env.php.');
         }
-        return $this->s3Client;
+
+        return new S3Client([
+            'version' => 'latest',
+            'region' => $region,
+            'credentials' => ['key' => $key, 'secret' => $secret],
+        ]);
     }
 
-    private function getAllS3Files(string $bucket, string $prefix): array
+    /**
+     * @throws FileSystemException
+     * @throws RuntimeException
+     */
+    private function getAllS3Files(): array
     {
         $s3Client = $this->getS3Client();
+        $bucket = $this->deploymentConfig->get('remote_storage/config/bucket');
+        $prefix = ($this->deploymentConfig->get('remote_storage/prefix', '') ? rtrim($this->deploymentConfig->get('remote_storage/prefix', ''), '/') . '/' : '') . 'media/';
+
         $allFiles = [];
         $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket, 'Prefix' => $prefix]);
         foreach ($paginator as $result) {
@@ -147,9 +152,6 @@ class S3AssetSynchronizer
         return $allFiles;
     }
 
-    /**
-     * CORRECTED: Fetches assets and keys the returned array by the 'path' column.
-     */
     private function getExistingDbAssets(): array
     {
         $connection = $this->resourceConnection->getConnection();
@@ -159,13 +161,12 @@ class S3AssetSynchronizer
 
         $assetsByPath = [];
         foreach ($rows as $row) {
-            // This ensures the array is keyed by the case-sensitive path.
             $assetsByPath[$row['path']] = $row;
         }
         return $assetsByPath;
     }
 
-    private function prepareAssetData(string $path, array $data, string $bucket, string $s3MediaPrefix, ?array $existingAsset = null): array
+    private function prepareAssetData(string $path, array $data, ?array $existingAsset = null): array
     {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $filename = pathinfo($path, PATHINFO_BASENAME);
@@ -176,8 +177,10 @@ class S3AssetSynchronizer
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         if (($width === 0 || $height === 0) && in_array($extension, $imageExtensions)) {
             try {
-                $fullS3Key = $s3MediaPrefix . $path;
-                $imageUrl = $this->getS3Client()->getObjectUrl($bucket, $fullS3Key);
+                $s3Client = $this->getS3Client();
+                $bucket = $this->deploymentConfig->get('remote_storage/config/bucket');
+                $fullS3Key = $this->s3Adapter->getFullS3Path($path);
+                $imageUrl = $s3Client->getObjectUrl($bucket, $fullS3Key);
                 $imageSizeInfo = @getimagesize($imageUrl);
                 if ($imageSizeInfo) {
                     $width = (int)$imageSizeInfo[0];
