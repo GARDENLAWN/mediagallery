@@ -5,12 +5,10 @@ namespace GardenLawn\MediaGallery\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\LocalizedException;
 
 class Delete extends Action
 {
@@ -27,7 +25,7 @@ class Delete extends Action
         $this->galleryRepository = $galleryRepository;
     }
 
-    public function execute(): Json|ResultInterface|ResponseInterface
+    public function execute(): ResultInterface
     {
         $result = $this->resultJsonFactory->create();
         $galleryId = (int)$this->getRequest()->getParam('id');
@@ -38,9 +36,13 @@ class Delete extends Action
 
         try {
             $this->galleryRepository->deleteById($galleryId);
-            return $result->setData(['error' => false, 'message' => __('Gallery has been deleted.')]);
+            $this->messageManager->addSuccessMessage(__('Gallery has been deleted.'));
+
+            // The JS component will listen for this event
+            return $result->setData(['error' => false, 'message' => __('Gallery has been deleted.'), 'reloadTree' => true]);
         } catch (\Exception $e) {
-            return $result->setData(['error' => true, 'message' => __('An error occurred while deleting the gallery.')]);
+            $this->messageManager->addErrorMessage(__('An error occurred while deleting the gallery: %1', $e->getMessage()));
+            return $result->setData(['error' => true, 'message' => $e->getMessage()]);
         }
     }
 

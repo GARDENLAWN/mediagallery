@@ -10,8 +10,9 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tree;
 
 <script>
     require(['jquery', 'jstree'], function($) {
-        $('#gallery-tree')
-            .on('changed.jstree', function (e, data) {
+        let tree = $('#gallery-tree');
+
+        tree.on('changed.jstree', function (e, data) {
                 if (data.selected.length) {
                     var selectedId = data.instance.get_node(data.selected[0]).id;
                     var filterValue = (selectedId === 'root') ? '' : selectedId;
@@ -20,7 +21,12 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tree;
             })
             .jstree({
                 'core': {
-                    'data': <?= /* @noEscape */ $block->getTreeJson() ?>,
+                    // Load data dynamically via AJAX
+                    'data': {
+                        'url': '<?= $block->escapeUrl($block->getUrl('gardenlawn_mediagallery/gallery/treedata')) ?>',
+                        'dataType': 'json'
+                    },
+                    'check_callback': true, // Allows for dynamic modifications
                     'themes': {
                         'name': 'default',
                         'dots': true,
@@ -29,5 +35,10 @@ use GardenLawn\MediaGallery\Block\Adminhtml\Gallery\Tree;
                 },
                 'plugins': ['wholerow']
             });
+
+        // Listen for the reload trigger
+        $('body').on('gallery:tree:reload', function() {
+            tree.jstree(true).refresh();
+        });
     });
 </script>

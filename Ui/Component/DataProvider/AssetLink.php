@@ -11,6 +11,7 @@ class AssetLink extends AbstractDataProvider
 {
     protected $collection;
     private RequestInterface $request;
+    private bool $isCollectionPrepared = false;
 
     public function __construct(
         $name,
@@ -28,6 +29,10 @@ class AssetLink extends AbstractDataProvider
 
     public function getData(): array
     {
+        if ($this->isCollectionPrepared) {
+            return $this->getCollection()->toArray();
+        }
+
         $galleryId = $this->request->getParam('gallery_id');
 
         if (!$galleryId) {
@@ -46,8 +51,7 @@ class AssetLink extends AbstractDataProvider
                 ['path', 'title']
             );
 
-        $data = $this->getCollection()->toArray();
-
-        return $data;
+        $this->isCollectionPrepared = true;
+        return $this->getCollection()->toArray();
     }
 }

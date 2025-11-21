@@ -23,17 +23,15 @@ define([
         },
 
         _bindEvents: function () {
-            // Manual search triggers the search-specific filter
             this.searchInput.on('keyup', this._filterBySearch.bind(this));
             this.element.on('click', '.tile-actions-toggle', this._toggleActionsDropdown.bind(this));
             this.element.on('click', '.action-toggle-status', this._toggleStatus.bind(this));
             this.element.on('click', '.action-delete', this._deleteGallery.bind(this));
             $(document).on('click', this._closeAllDropdowns.bind(this));
 
-            // Tree clicks trigger the tree-specific filter
             $('body').on('gallery:filter:update', (e, filterValue) => {
-                this.searchInput.val(filterValue); // Set value for user feedback
-                this._filterByTree(filterValue);   // Call the dedicated tree filter
+                this.searchInput.val(filterValue);
+                this._filterByTree(filterValue);
             });
         },
 
@@ -45,10 +43,6 @@ define([
             });
         },
 
-        /**
-         * Filters tiles based on manual text input.
-         * This is a case-insensitive "contains" search on the full gallery path.
-         */
         _filterBySearch: function () {
             let searchTerm = this.searchInput.val().toLowerCase();
             let visibleCount = 0;
@@ -78,10 +72,6 @@ define([
             this.noResultsMessage.toggle(visibleCount === 0);
         },
 
-        /**
-         * Filters tiles based on a tree node click.
-         * This is a case-sensitive "starts with" search to show children.
-         */
         _filterByTree: function (filterValue) {
             let visibleCount = 0;
 
@@ -98,7 +88,6 @@ define([
                 let isVisible = false;
 
                 if (galleryPath) {
-                    // A tile is visible if its path is an exact match OR if it's a sub-gallery.
                     isVisible = (galleryPath === filterValue) || galleryPath.startsWith(filterValue + '/');
                 }
 
@@ -162,8 +151,13 @@ define([
                 content: `Are you sure you want to delete the gallery "${galleryName}"?`,
                 actions: {
                     confirm: () => {
-                        this._ajaxRequest(this.options.deleteUrl, { id: galleryId }, function() {
-                            tile.remove();
+                        this._ajaxRequest(this.options.deleteUrl, { id: galleryId }, (response) => {
+                            if (response.error === false) {
+                                tile.remove();
+                                if (response.reloadTree) {
+                                    $('body').trigger('gallery:tree:reload');
+                                }
+                            }
                         });
                     }
                 }

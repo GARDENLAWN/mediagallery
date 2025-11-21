@@ -10,6 +10,8 @@ use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
 use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Controller\Result\RawFactory;
+use Magento\Framework\Controller\ResultInterface;
 use Psr\Log\LoggerInterface;
 
 class Save extends Action
@@ -18,25 +20,25 @@ class Save extends Action
     private GalleryFactory $galleryFactory;
     private LoggerInterface $logger;
     private GalleryCollectionFactory $galleryCollectionFactory;
+    private RawFactory $resultRawFactory;
 
     public function __construct(
         Context $context,
         GalleryRepositoryInterface $galleryRepository,
         GalleryFactory $galleryFactory,
         LoggerInterface $logger,
-        GalleryCollectionFactory $galleryCollectionFactory
+        GalleryCollectionFactory $galleryCollectionFactory,
+        RawFactory $resultRawFactory
     ) {
         $this->galleryRepository = $galleryRepository;
         $this->galleryFactory = $galleryFactory;
         $this->logger = $logger;
         $this->galleryCollectionFactory = $galleryCollectionFactory;
+        $this->resultRawFactory = $resultRawFactory;
         parent::__construct($context);
     }
 
-    /**
-     * @return Redirect
-     */
-    public function execute(): Redirect
+    public function execute(): ResultInterface
     {
         $data = $this->getRequest()->getPostValue();
         $resultRedirect = $this->resultRedirectFactory->create();
@@ -48,36 +50,31 @@ class Save extends Action
         $id = $this->getRequest()->getParam('id');
         $path = $data['path'] ?? null;
 
-        // --- Validation Logic using Collection ---
         if ($path) {
             $collection = $this->galleryCollectionFactory->create();
             $collection->addFieldToFilter('path', $path);
-
             if ($collection->getSize() > 0) {
                 $isDuplicate = false;
-                if ($id) { // Editing an existing gallery
-                    // It's a duplicate if a gallery with this path exists AND it has a different ID.
+                if ($id) {
                     $existingGallery = $collection->getFirstItem();
                     if ($existingGallery->getId() != $id) {
                         $isDuplicate = true;
                     }
-                } else { // Creating a new gallery
+                } else {
                     $isDuplicate = true;
                 }
 
                 if ($isDuplicate) {
                     $this->messageManager->addErrorMessage(__('A gallery with the path "%1" already exists.', $path));
-                    $this->_getSession()->setFormData($data); // Keep entered data
+                    $this->_getSession()->setFormData($data);
                     if ($id) {
                         return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
                     }
-                    // For a new gallery, redirect back to the 'new' action with the path pre-filled
                     $encodedPath = base64_encode($path);
                     return $resultRedirect->setPath('*/*/new', ['path' => $encodedPath]);
                 }
             }
         }
-        // --- End Validation Logic ---
 
         try {
             if ($id) {
@@ -93,10 +90,19 @@ class Save extends Action
             $this->messageManager->addSuccessMessage(__('You saved the gallery.'));
             $this->logger->info('Gallery saved', ['gallery_id' => $model->getId()]);
 
-            if ($this->getRequest()->getParam('back')) {
-                return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId(), '_current' => true]);
+            // Instead of redirecting, return a script that reloads the tree and closes the window
+            if (!$this->getRequest()->getParam('back')) {
+                $resultRaw = $this->resultRawFactory->create();
+                $resultRaw->setContents(
+                    "<script>
+                        window.parent.jQuery('body').trigger('gallery:tree:reload');
+                        window.parent.jQuery('.modal-header .action-close').trigger('click');
+                    </script>"
+                );
+                return $resultRaw;
             }
-            return $resultRedirect->setPath('*/*/');
+
+            return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId(), '_current' => true]);
 
         } catch (Exception $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
