@@ -8,7 +8,7 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
-use Magento\Framework\Api\SearchCriteriaBuilder;
+use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
 use Magento\Framework\Controller\Result\Redirect;
 use Psr\Log\LoggerInterface;
 
@@ -17,19 +17,19 @@ class Save extends Action
     private GalleryRepositoryInterface $galleryRepository;
     private GalleryFactory $galleryFactory;
     private LoggerInterface $logger;
-    private SearchCriteriaBuilder $searchCriteriaBuilder;
+    private GalleryCollectionFactory $galleryCollectionFactory;
 
     public function __construct(
         Context $context,
         GalleryRepositoryInterface $galleryRepository,
         GalleryFactory $galleryFactory,
         LoggerInterface $logger,
-        SearchCriteriaBuilder $searchCriteriaBuilder
+        GalleryCollectionFactory $galleryCollectionFactory
     ) {
         $this->galleryRepository = $galleryRepository;
         $this->galleryFactory = $galleryFactory;
         $this->logger = $logger;
-        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->galleryCollectionFactory = $galleryCollectionFactory;
         parent::__construct($context);
     }
 
@@ -48,23 +48,20 @@ class Save extends Action
         $id = $this->getRequest()->getParam('id');
         $path = $data['path'] ?? null;
 
-        // --- Validation Logic ---
+        // --- Validation Logic using Collection ---
         if ($path) {
-            $this->searchCriteriaBuilder->addFilter('path', $path);
-            $existingGalleries = $this->galleryRepository->getList($this->searchCriteriaBuilder->create())->getItems();
+            $collection = $this->galleryCollectionFactory->create();
+            $collection->addFieldToFilter('path', $path);
 
-            if (!empty($existingGalleries)) {
+            if ($collection->getSize() > 0) {
                 $isDuplicate = false;
                 if ($id) { // Editing an existing gallery
                     // It's a duplicate if a gallery with this path exists AND it has a different ID.
-                    foreach ($existingGalleries as $existingGallery) {
-                        if ($existingGallery->getId() != $id) {
-                            $isDuplicate = true;
-                            break;
-                        }
+                    $existingGallery = $collection->getFirstItem();
+                    if ($existingGallery->getId() != $id) {
+                        $isDuplicate = true;
                     }
                 } else { // Creating a new gallery
-                    // It's a duplicate if any gallery with this path exists.
                     $isDuplicate = true;
                 }
 
@@ -74,7 +71,9 @@ class Save extends Action
                     if ($id) {
                         return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
                     }
-                    return $resultRedirect->setPath('*/*/new');
+                    // For a new gallery, redirect back to the 'new' action with the path pre-filled
+                    $encodedPath = base64_encode($path);
+                    return $resultRedirect->setPath('*/*/new', ['path' => $encodedPath]);
                 }
             }
         }
