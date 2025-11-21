@@ -33,7 +33,8 @@ class Tree extends Template
     {
         $collection = $this->galleryCollectionFactory->create();
         $paths = $collection->getColumnValues('name');
-        sort($paths);
+        // CORRECTED: Use natural, case-insensitive sorting for a user-friendly tree view.
+        sort($paths, SORT_NATURAL | SORT_FLAG_CASE);
 
         $nodes = [];
         $nodes['root'] = ['id' => 'root', 'parent' => '#', 'text' => __('All Galleries'), 'state' => ['opened' => true]];
