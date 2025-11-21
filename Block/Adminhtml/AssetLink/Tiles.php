@@ -6,33 +6,33 @@ namespace GardenLawn\MediaGallery\Block\Adminhtml\AssetLink;
 use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
 use GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\CollectionFactory;
-use Magento\Framework\Registry;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 
 class Tiles extends Template
 {
     protected CollectionFactory $assetLinkCollectionFactory;
-    protected Registry $registry;
     private Json $jsonSerializer;
 
     public function __construct(
         Context $context,
         CollectionFactory $assetLinkCollectionFactory,
-        Registry $registry,
         Json $jsonSerializer,
         array $data = []
     ) {
         $this->assetLinkCollectionFactory = $assetLinkCollectionFactory;
-        $this->registry = $registry;
         $this->jsonSerializer = $jsonSerializer;
         parent::__construct($context, $data);
     }
 
+    /**
+     * Get the current gallery ID directly from the request.
+     * This is more reliable than using the registry.
+     */
     public function getCurrentGalleryId(): ?int
     {
-        $gallery = $this->registry->registry('gardenlawn_mediagallery_gallery');
-        return $gallery ? (int)$gallery->getId() : null;
+        $id = $this->getRequest()->getParam('id');
+        return $id ? (int)$id : null;
     }
 
     public function getAssetLinksData(): array
@@ -71,15 +71,13 @@ class Tiles extends Template
 
     public function getJsConfig(): string
     {
-        // Configuration for assetLinkTileComponent.js
         return $this->jsonSerializer->serialize([
-            // Add any needed URLs here, e.g., for delete, toggle status
+            // Add any needed URLs here
         ]);
     }
 
     public function getAddNewAssetLinkUrl(int $galleryId): string
     {
-        // This can be a new controller to select existing assets, for now, it's a placeholder
         return '#';
     }
 }

@@ -7,43 +7,48 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\Result\Json;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\MediaStorage\Model\File\UploaderFactory;
 use GardenLawn\MediaGallery\Model\AssetManager;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Filesystem;
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 class Upload extends Action
 {
-    public const ADMIN_RESOURCE = 'GardenLawn_MediaGallery::gallery_save';
+    public const string ADMIN_RESOURCE = 'GardenLawn_MediaGallery::gallery_save';
 
     private UploaderFactory $uploaderFactory;
     private AssetManager $assetManager;
     private LoggerInterface $logger;
-    private RequestInterface $request;
+    private Filesystem $filesystem;
 
     public function __construct(
         Context $context,
         UploaderFactory $uploaderFactory,
         AssetManager $assetManager,
         LoggerInterface $logger,
-        RequestInterface $request
+        Filesystem $filesystem
     ) {
         parent::__construct($context);
         $this->uploaderFactory = $uploaderFactory;
         $this->assetManager = $assetManager;
         $this->logger = $logger;
-        $this->request = $request;
+        $this->filesystem = $filesystem;
     }
 
     public function execute(): Json
     {
         try {
             $uploader = $this->uploaderFactory->create(['fileId' => 'asset_uploader[0]']);
-            $result = $uploader->save($uploader->getTmpDir());
 
-            $galleryId = (int)$this->getRequest()->getParam('id');
+            $tmpDirectory = $this->filesystem->getDirectoryWrite(DirectoryList::TMP);
+            $result = $uploader->save($tmpDirectory->getAbsolutePath());
+
+            // CORRECTED: The uploader gets the gallery_id from the form's data source params
+            $galleryId = (int)$this->getRequest()->getParam('gallery_id');
             if (!$galleryId) {
-                throw new \Magento\Framework\Exception\LocalizedException(__('Gallery ID is missing.'));
+                throw new LocalizedException(__('Gallery ID is missing.'));
             }
 
             $fileData = [
@@ -53,8 +58,6 @@ class Upload extends Action
 
             $this->assetManager->processUpload($fileData, $galleryId);
 
-            // On success, we don't need to return complex data,
-            // as we will just reload the page on the frontend.
             $result = ['success' => true];
 
         } catch (\Exception $e) {
