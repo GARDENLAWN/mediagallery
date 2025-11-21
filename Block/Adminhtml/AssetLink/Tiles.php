@@ -49,8 +49,8 @@ class Tiles extends Template
         $collection = $this->assetLinkCollectionFactory->create();
         $collection->addFieldToFilter('main_table.gallery_id', $galleryId)
             ->join(
-                ['mga' => $collection->getTable('media_gallery_asset')],
-                'main_table.asset_id = mga.id',
+                ['mgasset' => $collection->getTable('media_gallery_asset')],
+                'main_table.asset_id = mgasset.id',
                 ['path', 'title']
             )
             ->setOrder('main_table.sort_order', 'ASC');
