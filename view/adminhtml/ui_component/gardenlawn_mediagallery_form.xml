@@ -111,11 +111,11 @@
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="label" xsi:type="string" translate="true">Upload New Assets</item>
-                    <item name="component" xsi:type="string">GardenLawn_MediaGallery/js/form/element/gallery-file-uploader</item> <!-- Zmieniono z formElement -->
+                    <item name="formElement" xsi:type="string">fileUploader</item>
                     <item name="uploaderConfig" xsi:type="array">
                         <item name="url" xsi:type="url" path="gardenlawn_mediagallery/gallery/upload"/>
-                        <item name="params" xsi:type="array">
-                            <!-- gallery_id jest teraz ustawiane dynamicznie przez komponent JS -->
+                        <item name="urlParams" xsi:type="array">
+                            <item name="gallery_id" xsi:type="string">${ $.provider }:data.gallery_id</item>
                         </item>
                     </item>
                     <item name="listeners" xsi:type="array">
