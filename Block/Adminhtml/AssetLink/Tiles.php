@@ -26,14 +26,9 @@ class Tiles extends Template
         parent::__construct($context, $data);
     }
 
-    /**
-     * Get the current gallery ID directly from the request.
-     * This is the most reliable method in this context.
-     */
     public function getCurrentGalleryId(): ?int
     {
-        $id = $this->getRequest()->getParam('id');
-        return $id ? (int)$id : null;
+        return (int)$this->getRequest()->getParam('id');
     }
 
     /**
@@ -76,7 +71,9 @@ class Tiles extends Template
     public function getJsConfig(): string
     {
         return $this->jsonSerializer->serialize([
-            // Add any needed URLs here
+            'toggleStatusUrl' => $this->getUrl('gardenlawn_mediagallery/assetlink/togglestatus'),
+            'formKey' => $this->getFormKey(),
+            'currentGalleryId' => $this->getCurrentGalleryId()
         ]);
     }
 
