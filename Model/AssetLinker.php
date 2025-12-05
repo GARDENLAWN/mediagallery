@@ -24,7 +24,8 @@ class AssetLinker
         $galleryTable = $connection->getTableName('gardenlawn_mediagallery');
 
         $activeDirectoryPaths = $this->getActiveDirectoryPaths($connection);
-        $existingGalleryPaths = array_flip($connection->fetchCol($connection->select()->from($galleryTable, ['path'])));
+        $paths = $connection->fetchCol($connection->select()->from($galleryTable, ['path']));
+        $existingGalleryPaths = array_flip(array_filter($paths));
 
         $galleriesToInsert = [];
         foreach ($activeDirectoryPaths as $path) {
@@ -92,7 +93,7 @@ class AssetLinker
         $galleryIdsToDelete = [];
         $deletedGalleryPaths = [];
         foreach ($allGalleries as $gallery) {
-            if (!isset($activeDirectoryPaths[$gallery['path']])) {
+            if (!isset($activeDirectoryPaths[$gallery['path']]) && !empty($gallery['path'])) {
                 $galleryIdsToDelete[] = $gallery['id'];
                 $deletedGalleryPaths[] = $gallery['path'];
             }
