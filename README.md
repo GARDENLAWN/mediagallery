@@ -42,3 +42,19 @@ Tworzy galerie na podstawie folderów, linkuje do nich zasoby i opcjonalnie czy�
     ```sh
     bin/magento gardenlawn:mediagallery:populate-all --with-prune --dry-run
     ```
+
+### 3. `gardenlawn:gallery:convert-to-webp`
+
+Wyszukuje obrazy (JPG, PNG, JPEG) w S3 i konwertuje je do formatu WebP.
+
+*   **Główne funkcje:**
+    *   Iteruje przez wszystkie pliki w `pub/media/`, z wyłączeniem `catalog/` i `tmp/`.
+    *   Dla każdego obrazu sprawdza, czy istnieje już jego wersja `.webp`.
+    *   Jeśli nie, konwertuje obraz i zapisuje go w tej samej lokalizacji z rozszerzeniem `.webp`.
+    *   **Czyszczenie:** Znajduje i usuwa niepoprawnie nazwane pliki (np. `obraz.jpg.webp`) przed ponowną konwersją.
+
+*   **Podstawowe użycie:**
+    ```sh
+    bin/magento gardenlawn:gallery:convert-to-webp
+    ```
+    Komenda nie posiada dodatkowych opcji. Zaleca się uruchamianie jej w tle lub w sesji `screen` dla dużych bibliotek mediów.
