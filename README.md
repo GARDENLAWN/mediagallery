@@ -49,7 +49,7 @@ Kompleksowe narzędzie do konwersji obrazów na format WebP, tworzenia miniature
 
 *   **Kolejność operacji:**
     1.  **Czyszczenie wstępne:** Skanuje cały bucket w poszukiwaniu i usuwa niepoprawnie nazwane pliki, np. `obraz.jpg.webp` lub `obraz.webp.webp`.
-    2.  **Konwersja obrazów:** Wyszukuje obrazy (JPG, PNG, JPEG) w `pub/media/` (z wyłączeniem `catalog/` i `tmp/`) i konwertuje je do formatu WebP, jeśli poprawna wersja `.webp` jeszcze nie istnieje.
+    2.  **Konwersja obrazów:** Wyszukuje obrazy (JPG, PNG, JPEG) w `pub/media/` (z wyłączeniem `catalog/` i `tmp/`) i konwertuje je do formatu WebP.
     3.  **Tworzenie miniaturek:** Dla każdego nowo utworzonego pliku `.webp` generuje jego miniaturkę (domyślnie 240x240px) i zapisuje ją w odpowiednim katalogu `.thumbs`, np. `pub/media/.thumbswysiwyg/obraz.webp`.
     4.  **Czyszczenie końcowe:** Usuwa całą zawartość folderu `pub/media/tmp/` w S3, a następnie tworzy go na nowo jako pusty katalog.
 
@@ -58,9 +58,14 @@ Kompleksowe narzędzie do konwersji obrazów na format WebP, tworzenia miniature
     bin/magento gardenlawn:gallery:convert-to-webp
     ```
 
-*   **Tryb szczegółowy (verbose):**
-    Aby zobaczyć szczegółowe logi z każdego etapu (pobieranie, konwersja, wysyłanie, czyszczenie), użyj flagi `-v`.
-    ```sh
-    bin/magento gardenlawn:gallery:convert-to-webp -v
-    ```
+*   **Opcje:**
+    *   `--force` lub `-f`: Wymusza regenerację istniejących już plików `.webp` i ich miniaturek. Skrypt najpierw usunie stare pliki, a następnie utworzy je na nowo.
+        ```sh
+        bin/magento gardenlawn:gallery:convert-to-webp --force
+        ```
+    *   `-v`: Tryb szczegółowy (verbose). Wyświetla szczegółowe logi z każdego etapu (pobieranie, konwersja, wysyłanie, czyszczenie).
+        ```sh
+        bin/magento gardenlawn:gallery:convert-to-webp -v
+        ```
+
     Zaleca się uruchamianie komendy w tle lub w sesji `screen` dla dużych bibliotek mediów.

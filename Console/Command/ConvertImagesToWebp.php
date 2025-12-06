@@ -10,6 +10,7 @@ use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Psr\Log\LoggerInterface;
 use Magento\Framework\Console\Cli;
@@ -18,6 +19,7 @@ class ConvertImagesToWebp extends Command
 {
     private const string COMMAND_NAME = 'gardenlawn:gallery:convert-to-webp';
     private const string COMMAND_DESCRIPTION = 'Converts images in S3 media gallery to WebP format, creates thumbnails, and cleans up legacy files.';
+    private const string OPTION_FORCE = 'force';
 
     private State $appState;
     private S3Adapter $s3Adapter;
@@ -42,6 +44,12 @@ class ConvertImagesToWebp extends Command
     {
         $this->setName(self::COMMAND_NAME);
         $this->setDescription(self::COMMAND_DESCRIPTION);
+        $this->addOption(
+            self::OPTION_FORCE,
+            '-f',
+            InputOption::VALUE_NONE,
+            'Force regeneration of existing WebP files and thumbnails.'
+        );
         parent::configure();
     }
 
@@ -53,7 +61,11 @@ class ConvertImagesToWebp extends Command
             // Area code is already set
         }
 
+        $isForce = $input->getOption(self::OPTION_FORCE);
         $output->writeln('<info>Starting WebP conversion, thumbnail generation, and cleanup process for S3 media...</info>');
+        if ($isForce) {
+            $output->writeln('<comment>Force mode is enabled. Existing WebP files will be regenerated.</comment>');
+        }
 
         $cleanedCount = $this->cleanupLegacyFiles($output);
 
@@ -68,6 +80,7 @@ class ConvertImagesToWebp extends Command
         $convertedCount = 0;
         $skippedCount = 0;
         $errorCount = 0;
+        $deletedForForceCount = 0;
 
         try {
             $objects = $this->s3Adapter->listObjects('', $imageExtensions);
@@ -92,12 +105,31 @@ class ConvertImagesToWebp extends Command
                 $correctWebpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mediaRelativePath);
 
                 if ($this->s3Adapter->doesObjectExist($correctWebpPath)) {
-                    $output->writeln("  -> Correct WebP version already exists. Skipping conversion.");
-                    $skippedCount++;
-                    continue;
+                    if (!$isForce) {
+                        $output->writeln("  -> Correct WebP version already exists. Skipping conversion.");
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    // Force mode: delete existing files before conversion
+                    $output->writeln("  -> <comment>Force mode: Deleting existing WebP file...</comment>");
+                    try {
+                        $this->s3Adapter->deleteObject($correctWebpPath);
+                        $deletedForForceCount++;
+                        $thumbnailPath = $this->webpConverter->getThumbnailPath($correctWebpPath);
+                        if ($thumbnailPath && $this->s3Adapter->doesObjectExist($thumbnailPath)) {
+                            $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
+                            $this->s3Adapter->deleteObject($thumbnailPath);
+                        }
+                    } catch (Exception $e) {
+                        $output->writeln("  -> <error>Failed to delete existing files for force regeneration: {$e->getMessage()}</error>");
+                        $this->logger->error("Force delete failed for {$correctWebpPath}: " . $e->getMessage());
+                        $errorCount++;
+                        continue; // Skip to next file on delete error
+                    }
                 }
 
-                $output->writeln("  -> Correct WebP version not found. Converting...");
+                $output->writeln("  -> Converting...");
 
                 try {
                     $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output, true);
@@ -128,6 +160,9 @@ class ConvertImagesToWebp extends Command
         $output->writeln("<info>--------------------</info>");
         $output->writeln("Processed source images: <comment>$processedCount</comment>");
         $output->writeln("Legacy files cleaned: <info>$cleanedCount</info>");
+        if ($isForce) {
+            $output->writeln("Files deleted for regeneration: <comment>$deletedForForceCount</comment>");
+        }
         $output->writeln("Successfully converted: <info>$convertedCount</info>");
         $output->writeln("Skipped (already exist): <comment>$skippedCount</comment>");
         $output->writeln("Errors: <error>$errorCount</error>");
@@ -147,7 +182,6 @@ class ConvertImagesToWebp extends Command
                 $mediaRelativePath = substr($s3Key, strlen($mediaPrefix));
                 $filename = basename($mediaRelativePath);
 
-                // Check for .ext.webp or .webp.webp
                 if (preg_match('/\.(jpg|jpeg|png|webp)\.webp$/i', $filename)) {
                     $output->writeln("  -> Found legacy WebP file: <comment>$mediaRelativePath</comment>. Deleting...");
                     try {

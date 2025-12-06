@@ -46,7 +46,8 @@ class WebpConverter
             $this->mediaDirectory->create($localTempDir);
         }
 
-        $localTempPath = $localTempDir . '/' . basename($sourceFilePath);
+        $uniqueTempName = str_replace('/', '_', $sourceFilePath);
+        $localTempPath = $localTempDir . '/' . $uniqueTempName;
         $localWebpPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $localTempPath);
         $s3WebpPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $sourceFilePath);
 
@@ -73,8 +74,8 @@ class WebpConverter
             $this->mediaDirectory->copyFile($localWebpPath, $s3WebpPath);
             $success = true;
 
-            if ($success && $createThumbnail) {
-                $this->createThumbnail($localWebpPath, $s3WebpPath, $thumbnailWidth, $thumbnailHeight, $output, $filesToClean);
+            if ($createThumbnail) {
+                $this->createThumbnail($localWebpPath, $s3WebpPath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
             }
 
         } catch (Exception $e) {
@@ -93,23 +94,37 @@ class WebpConverter
         return $success ? $s3WebpPath : false;
     }
 
-    private function createThumbnail($sourceLocalWebp, $s3WebpPath, $width, $height, $output, &$filesToClean): void
+    public function getThumbnailPath(string $webpPath): ?string
+    {
+        $pathParts = explode('/', $webpPath, 2);
+        if (count($pathParts) < 2) {
+            return null; // Image is in media root, no thumb
+        }
+        return '.thumbs' . $pathParts[0] . '/' . $pathParts[1];
+    }
+
+    private function createThumbnail($sourceLocalWebp, $s3WebpPath, $width, $height, $quality, $output, &$filesToClean): void
     {
         try {
             $this->log($output, "  -> Creating thumbnail...");
-            $pathParts = explode('/', $s3WebpPath, 2);
-            if (count($pathParts) < 2) {
+            $thumbnailS3Path = $this->getThumbnailPath($s3WebpPath);
+            if (!$thumbnailS3Path) {
                 $this->log($output, "  -> <comment>Skipping thumbnail: image is in media root.</comment>");
                 return;
             }
 
-            $thumbnailS3Path = '.thumbs' . $pathParts[0] . '/' . $pathParts[1];
-            $localThumbnailPath = $this->mediaDirectory->getAbsolutePath('webp_temp/' . basename($thumbnailS3Path));
+            $uniqueThumbName = str_replace('/', '_', $thumbnailS3Path);
+            $localThumbnailPath = $this->mediaDirectory->getAbsolutePath('webp_temp/' . $uniqueThumbName);
             $filesToClean[] = $localThumbnailPath;
 
             $this->log($output, "  -> Opening local WebP <comment>$sourceLocalWebp</comment> for thumbnailing...");
             $thumbAdapter = $this->imageAdapterFactory->create();
             $thumbAdapter->open($sourceLocalWebp);
+
+            if (method_exists($thumbAdapter, 'setQuality')) {
+                $this->log($output, "  -> Setting thumbnail quality to <comment>$quality</comment>...");
+                $thumbAdapter->setQuality($quality);
+            }
 
             $this->log($output, "  -> Setting keep aspect ratio to true...");
             $thumbAdapter->keepAspectRatio(true);
