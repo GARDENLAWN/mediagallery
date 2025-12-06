@@ -18,7 +18,7 @@ use Magento\Framework\Console\Cli;
 class ConvertImagesToWebp extends Command
 {
     private const string COMMAND_NAME = 'gardenlawn:gallery:convert-to-webp';
-    private const string COMMAND_DESCRIPTION = 'Converts images in S3 media gallery to WebP format, creates thumbnails, and cleans up legacy files.';
+    private const string COMMAND_DESCRIPTION = 'Converts images to WebP, creates thumbnails, and cleans up legacy files.';
     private const string OPTION_FORCE = 'force';
 
     private State $appState;
@@ -62,7 +62,7 @@ class ConvertImagesToWebp extends Command
         }
 
         $isForce = $input->getOption(self::OPTION_FORCE);
-        $output->writeln('<info>Starting WebP conversion, thumbnail generation, and cleanup process for S3 media...</info>');
+        $output->writeln('<info>Starting WebP conversion process...</info>');
         if ($isForce) {
             $output->writeln('<comment>Force mode is enabled. Existing WebP files will be regenerated.</comment>');
         }
@@ -70,16 +70,16 @@ class ConvertImagesToWebp extends Command
         $cleanedCount = $this->cleanupLegacyFiles($output);
 
         $excludedPrefixes = [
-            'pub/media/catalog/',
             'pub/media/tmp/',
-            'pub/media/webp_temp/',
-            'pub/media/.thumbs', // Ignore thumbnail directories
+            'pub/media/.thumbs',
         ];
+        $catalogDir = 'pub/media/catalog/';
         $imageExtensions = ['jpg', 'jpeg', 'png'];
         $mediaPrefix = 'pub/media/';
 
         $processedCount = 0;
         $convertedCount = 0;
+        $thumbOnlyCount = 0;
         $skippedCount = 0;
         $errorCount = 0;
         $deletedForForceCount = 0;
@@ -104,48 +104,68 @@ class ConvertImagesToWebp extends Command
                 $output->writeln("Processing: <comment>$s3Key</comment>");
 
                 $mediaRelativePath = substr($s3Key, strlen($mediaPrefix));
-                $correctWebpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mediaRelativePath);
+                $isCatalogImage = str_starts_with($s3Key, $catalogDir);
 
-                if ($this->s3Adapter->doesObjectExist($correctWebpPath)) {
-                    if (!$isForce) {
-                        $output->writeln("  -> Correct WebP version already exists. Skipping conversion.");
+                if ($isCatalogImage) {
+                    // For catalog images, only create the thumbnail
+                    $output->writeln("  -> Catalog image detected. Generating WebP thumbnail only.");
+                    $thumbnailS3Path = $this->webpConverter->getThumbnailPath(str_replace(['.jpg', '.png', '.jpeg'], '.webp', $mediaRelativePath));
+
+                    if ($thumbnailS3Path && !$this->s3Adapter->doesObjectExist($thumbnailS3Path) || $isForce) {
+                        if ($isForce && $thumbnailS3Path && $this->s3Adapter->doesObjectExist($thumbnailS3Path)) {
+                            $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
+                            $this->s3Adapter->deleteObject($thumbnailS3Path);
+                        }
+                        $result = $this->webpConverter->createWebpThumbnail($mediaRelativePath, 89, $output);
+                        if ($result) {
+                            $thumbOnlyCount++;
+                        } else {
+                            $errorCount++;
+                        }
+                    } else {
+                        $output->writeln("  -> Thumbnail already exists. Skipping.");
                         $skippedCount++;
-                        continue;
+                    }
+                } else {
+                    // For other images, do the full conversion
+                    $correctWebpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mediaRelativePath);
+
+                    if ($this->s3Adapter->doesObjectExist($correctWebpPath)) {
+                        if (!$isForce) {
+                            $output->writeln("  -> Correct WebP version already exists. Skipping conversion.");
+                            $skippedCount++;
+                            continue;
+                        }
+
+                        $output->writeln("  -> <comment>Force mode: Deleting existing WebP file...</comment>");
+                        try {
+                            $this->s3Adapter->deleteObject($correctWebpPath);
+                            $deletedForForceCount++;
+                            $thumbnailPath = $this->webpConverter->getThumbnailPath($correctWebpPath);
+                            if ($thumbnailPath && $this->s3Adapter->doesObjectExist($thumbnailPath)) {
+                                $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
+                                $this->s3Adapter->deleteObject($thumbnailPath);
+                            }
+                        } catch (Exception $e) {
+                            $output->writeln("  -> <error>Failed to delete existing files: {$e->getMessage()}</error>");
+                            $errorCount++;
+                            continue;
+                        }
                     }
 
-                    // Force mode: delete existing files before conversion
-                    $output->writeln("  -> <comment>Force mode: Deleting existing WebP file...</comment>");
+                    $output->writeln("  -> Converting...");
                     try {
-                        $this->s3Adapter->deleteObject($correctWebpPath);
-                        $deletedForForceCount++;
-                        $thumbnailPath = $this->webpConverter->getThumbnailPath($correctWebpPath);
-                        if ($thumbnailPath && $this->s3Adapter->doesObjectExist($thumbnailPath)) {
-                            $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
-                            $this->s3Adapter->deleteObject($thumbnailPath);
+                        $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output, true);
+                        if ($result) {
+                            $convertedCount++;
+                        } else {
+                            $errorCount++;
                         }
                     } catch (Exception $e) {
-                        $output->writeln("  -> <error>Failed to delete existing files for force regeneration: {$e->getMessage()}</error>");
-                        $this->logger->error("Force delete failed for {$correctWebpPath}: " . $e->getMessage());
-                        $errorCount++;
-                        continue; // Skip to next file on delete error
-                    }
-                }
-
-                $output->writeln("  -> Converting...");
-
-                try {
-                    $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output, true);
-                    if ($result) {
-                        $output->writeln("  -> <info>Successfully converted and saved to $result</info>");
-                        $convertedCount++;
-                    } else {
-                        $output->writeln("  -> <error>Conversion failed.</error>");
+                        $output->writeln("  -> <error>An error occurred during conversion: {$e->getMessage()}</error>");
+                        $this->logger->error("WebP Conversion Error for $mediaRelativePath: " . $e->getMessage());
                         $errorCount++;
                     }
-                } catch (Exception $e) {
-                    $output->writeln("  -> <error>An error occurred during conversion: {$e->getMessage()}</error>");
-                    $this->logger->error("WebP Conversion Error for $mediaRelativePath: " . $e->getMessage());
-                    $errorCount++;
                 }
             }
         } catch (Exception $e) {
@@ -165,7 +185,8 @@ class ConvertImagesToWebp extends Command
         if ($isForce) {
             $output->writeln("Files deleted for regeneration: <comment>$deletedForForceCount</comment>");
         }
-        $output->writeln("Successfully converted: <info>$convertedCount</info>");
+        $output->writeln("Full conversions: <info>$convertedCount</info>");
+        $output->writeln("Thumbnails only (for catalog): <info>$thumbOnlyCount</info>");
         $output->writeln("Skipped (already exist): <comment>$skippedCount</comment>");
         $output->writeln("Errors: <error>$errorCount</error>");
 
