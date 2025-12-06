@@ -113,7 +113,7 @@ class ConvertImagesToWebp extends Command
                 $output->writeln("  -> Correct WebP version not found. Converting...");
 
                 try {
-                    $result = $this->webpConverter->convertAndSave($mediaRelativePath);
+                    $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output);
                     if ($result) {
                         $output->writeln("  -> <info>Successfully converted and saved to $result</info>");
                         $convertedCount++;

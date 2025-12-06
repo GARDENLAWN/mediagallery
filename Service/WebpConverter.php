@@ -7,6 +7,7 @@ use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem;
 use Magento\Framework\Image\AdapterFactory;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class WebpConverter
 {
@@ -32,49 +33,59 @@ class WebpConverter
     /**
      * @throws FileSystemException
      */
-    public function convertAndSave($sourceFilePath, $quality = 80): array|false|string
+    public function convertAndSave($sourceFilePath, $quality = 89, OutputInterface $output = null): array|false|string
     {
-        // 1. Definicja ścieżek
-        $localTempPath = $this->mediaDirectory->getAbsolutePath('webp_temp' . $sourceFilePath); // Pobierz do temp
-        $localWebpPath = $this->mediaDirectory->getAbsolutePath('webp_temp' . str_replace(['.jpg', '.png', '.jpeg'], '.webp', $sourceFilePath));
+        $localTempDir = $this->mediaDirectory->getAbsolutePath('webp_temp');
+        if (!$this->mediaDirectory->isExist($localTempDir)) {
+            $this->mediaDirectory->create($localTempDir);
+        }
+
+        $localTempPath = $localTempDir . '/' . basename($sourceFilePath);
+        $localWebpPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $localTempPath);
         $s3WebpPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $sourceFilePath);
 
-        // 2. Pobranie pliku z S3 do lokalnego katalogu tymczasowego 'media/webp_temp/'
-        // Jeśli plik jest w S3, Magento używa metody copyFrom jako proxy do S3
+        $this->log($output, "  -> Downloading <comment>$sourceFilePath</comment> to temporary directory...");
         $this->mediaDirectory->copyFile($sourceFilePath, $localTempPath);
 
         try {
-            // 3. Konwersja lokalna za pomocą Image Adapter (bezpieczniejsza niż czyste GD)
+            $this->log($output, "  -> Opening image with adapter...");
             $imageAdapter = $this->imageAdapterFactory->create();
             $imageAdapter->open($localTempPath);
 
-            // Ustawienie jakości obrazu
             if (method_exists($imageAdapter, 'setQuality')) {
+                $this->log($output, "  -> Setting quality to <comment>$quality</comment>...");
                 $imageAdapter->setQuality($quality);
             }
 
-            // Konwersja na WebP
+            $this->log($output, "  -> Saving as WebP locally to <comment>$localWebpPath</comment>...");
             $imageAdapter->save($localWebpPath);
 
-            // 4. Wgranie pliku WebP z lokalnego temp do S3
-            // W tym momencie, ze względu na aktywny S3 w konfiguracji, Magento automatycznie
-            // użyje adaptera S3 do wgrania pliku.
+            $this->log($output, "  -> Uploading converted file to S3 at <comment>$s3WebpPath</comment>...");
             $this->mediaDirectory->copyFile($localWebpPath, $s3WebpPath);
 
             $success = true;
         } catch (Exception $e) {
             $success = false;
+            $this->log($output, "  -> <error>Conversion failed: {$e->getMessage()}</error>", 'error');
             $this->logger->error('Błąd konwersji do WebP: ' . $e->getMessage());
-        }
-
-        // 5. Czyszczenie lokalnych plików tymczasowych
-        if ($this->mediaDirectory->isExist($localTempPath)) {
-            $this->mediaDirectory->delete($localTempPath);
-        }
-        if ($this->mediaDirectory->isExist($localWebpPath)) {
-            $this->mediaDirectory->delete($localWebpPath);
+        } finally {
+            $this->log($output, "  -> Cleaning up temporary files...");
+            if ($this->mediaDirectory->isExist($localTempPath)) {
+                $this->mediaDirectory->delete($localTempPath);
+            }
+            if ($this->mediaDirectory->isExist($localWebpPath)) {
+                $this->mediaDirectory->delete($localWebpPath);
+            }
+            $this->log($output, "  -> Cleanup complete.");
         }
 
         return $success ? $s3WebpPath : false;
+    }
+
+    private function log(OutputInterface $output = null, string $message, string $level = 'info'): void
+    {
+        if ($output && $output->getVerbosity() >= OutputInterface::VERBOSITY_VERBOSE) {
+            $output->writeln($message);
+        }
     }
 }
