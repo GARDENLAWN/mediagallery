@@ -74,7 +74,7 @@ class ConvertImagesToWebp extends Command
             'pub/media/.thumbs',
         ];
         $catalogDir = 'pub/media/catalog/';
-        $imageExtensions = ['jpg', 'jpeg', 'png'];
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'svg']; // Add SVG to process
         $mediaPrefix = 'pub/media/';
 
         $processedCount = 0;
@@ -107,14 +107,19 @@ class ConvertImagesToWebp extends Command
                 $isCatalogImage = str_starts_with($s3Key, $catalogDir);
 
                 if ($isCatalogImage) {
-                    // For catalog images, only create the thumbnail
-                    $output->writeln("  -> Catalog image detected. Generating WebP thumbnail only.");
-                    $thumbnailS3Path = $this->webpConverter->getThumbnailPath(str_replace(['.jpg', '.png', '.jpeg'], '.webp', $mediaRelativePath));
+                    $output->writeln("  -> Catalog image detected. Generating thumbnail only.");
 
-                    if ($thumbnailS3Path && !$this->s3Adapter->doesObjectExist($thumbnailS3Path) || $isForce) {
-                        if ($isForce && $thumbnailS3Path && $this->s3Adapter->doesObjectExist($thumbnailS3Path)) {
+                    $sourceExtension = strtolower(pathinfo($mediaRelativePath, PATHINFO_EXTENSION));
+                    $thumbnailPath = $this->webpConverter->getThumbnailPath($mediaRelativePath);
+
+                    if ($sourceExtension !== 'svg') {
+                        $thumbnailPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $thumbnailPath);
+                    }
+
+                    if ($thumbnailPath && !$this->s3Adapter->doesObjectExist($thumbnailPath) || $isForce) {
+                        if ($isForce && $thumbnailPath && $this->s3Adapter->doesObjectExist($thumbnailPath)) {
                             $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
-                            $this->s3Adapter->deleteObject($thumbnailS3Path);
+                            $this->s3Adapter->deleteObject($thumbnailPath);
                         }
                         $result = $this->webpConverter->createWebpThumbnail($mediaRelativePath, 89, $output);
                         if ($result) {
