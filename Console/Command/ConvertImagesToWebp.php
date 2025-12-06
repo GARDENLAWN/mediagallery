@@ -72,6 +72,7 @@ class ConvertImagesToWebp extends Command
         $excludedPrefixes = [
             'pub/media/catalog/',
             'pub/media/tmp/',
+            'pub/media/webp_temp/',
             'pub/media/.thumbs', // Ignore thumbnail directories
         ];
         $imageExtensions = ['jpg', 'jpeg', 'png'];
