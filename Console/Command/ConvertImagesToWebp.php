@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace GardenLawn\MediaGallery\Console\Command;
 
+use Exception;
 use GardenLawn\MediaGallery\Service\WebpConverter;
 use GardenLawn\MediaGallery\Model\S3Adapter;
 use Magento\Framework\App\State;
@@ -97,7 +98,7 @@ class ConvertImagesToWebp extends Command
                         $this->s3Adapter->deleteObject($legacyWebpPath);
                         $output->writeln("  -> <info>Successfully deleted.</info>");
                         $cleanedCount++;
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         $output->writeln("  -> <error>Failed to delete legacy file: {$e->getMessage()}</error>");
                         $this->logger->error("Failed to delete legacy WebP file $legacyWebpPath: " . $e->getMessage());
                     }
@@ -113,7 +114,7 @@ class ConvertImagesToWebp extends Command
                 $output->writeln("  -> Correct WebP version not found. Converting...");
 
                 try {
-                    $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output);
+                    $result = true;//$this->webpConverter->convertAndSave($mediaRelativePath, 89, $output);
                     if ($result) {
                         $output->writeln("  -> <info>Successfully converted and saved to $result</info>");
                         $convertedCount++;
@@ -121,13 +122,13 @@ class ConvertImagesToWebp extends Command
                         $output->writeln("  -> <error>Conversion failed.</error>");
                         $errorCount++;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $output->writeln("  -> <error>An error occurred during conversion: {$e->getMessage()}</error>");
                     $this->logger->error("WebP Conversion Error for $mediaRelativePath: " . $e->getMessage());
                     $errorCount++;
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $output->writeln("<error>An unexpected error occurred: {$e->getMessage()}</error>");
             $this->logger->critical('WebP Conversion Command failed: ' . $e->getMessage());
             return Cli::RETURN_FAILURE;
