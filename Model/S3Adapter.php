@@ -122,4 +122,57 @@ class S3Adapter
             'SourceFile' => $filePath,
         ]);
     }
+
+    /**
+     * @throws Exception
+     */
+    public function listObjects(string $prefix = '', array $extensions = []): \Generator
+    {
+        $s3Client = $this->getS3Client();
+        $fullPrefix = $this->getFullS3Path($prefix);
+
+        $paginator = $s3Client->getPaginator('ListObjectsV2', [
+            'Bucket' => $this->bucket,
+            'Prefix' => $fullPrefix,
+        ]);
+
+        foreach ($paginator as $result) {
+            foreach ($result['Contents'] ?? [] as $object) {
+                $key = $object['Key'];
+                if ($extensions) {
+                    $ext = pathinfo($key, PATHINFO_EXTENSION);
+                    if (in_array($ext, $extensions)) {
+                        yield $key;
+                    }
+                } else {
+                    yield $key;
+                }
+            }
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function doesObjectExist(string $path): bool
+    {
+        $s3Client = $this->getS3Client();
+        $fullPath = $this->getFullS3Path($path);
+
+        return $s3Client->doesObjectExist($this->bucket, $fullPath);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function deleteObject(string $path): void
+    {
+        $s3Client = $this->getS3Client();
+        $fullPath = $this->getFullS3Path($path);
+
+        $s3Client->deleteObject([
+            'Bucket' => $this->bucket,
+            'Key' => $fullPath,
+        ]);
+    }
 }
