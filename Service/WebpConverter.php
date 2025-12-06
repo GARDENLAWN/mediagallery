@@ -111,7 +111,10 @@ class WebpConverter
             $thumbAdapter = $this->imageAdapterFactory->create();
             $thumbAdapter->open($sourceLocalWebp);
 
-            $this->log($output, "  -> Resizing to <comment>{$width}x{$height}</comment>...");
+            $this->log($output, "  -> Setting keep aspect ratio to true...");
+            $thumbAdapter->keepAspectRatio(true);
+
+            $this->log($output, "  -> Resizing to fit within <comment>{$width}x{$height}</comment>...");
             $thumbAdapter->resize($width, $height);
 
             $this->log($output, "  -> Saving thumbnail locally to <comment>$localThumbnailPath</comment>...");
