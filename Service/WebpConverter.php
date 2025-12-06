@@ -129,6 +129,9 @@ class WebpConverter
             $this->log($output, "  -> Setting keep aspect ratio to true...");
             $thumbAdapter->keepAspectRatio(true);
 
+            $this->log($output, "  -> Setting keep transparency to true...");
+            $thumbAdapter->keepTransparency(true);
+
             $this->log($output, "  -> Resizing to fit within <comment>{$width}x{$height}</comment>...");
             $thumbAdapter->resize($width, $height);
 
