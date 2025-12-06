@@ -81,6 +81,48 @@ class AssetLinker
         return $linksCreated;
     }
 
+    public function linkSingleAsset(int $assetId, string $assetPath): void
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $galleryTable = $connection->getTableName('gardenlawn_mediagallery');
+        $linkTable = $connection->getTableName('gardenlawn_mediagallery_asset_link');
+
+        $dir = dirname($assetPath);
+        if ($dir === '.') {
+            return; // No gallery for root assets
+        }
+
+        // Find or create the gallery
+        $select = $connection->select()->from($galleryTable, 'id')->where('path = ?', $dir);
+        $galleryId = $connection->fetchOne($select);
+
+        if (!$galleryId) {
+            $connection->insert($galleryTable, ['path' => $dir, 'enabled' => 1, 'sort_order' => 0]);
+            $galleryId = $connection->lastInsertId($galleryTable);
+        }
+
+        // Check if link already exists
+        $select = $connection->select()->from($linkTable, 'link_id')
+            ->where('gallery_id = ?', $galleryId)
+            ->where('asset_id = ?', $assetId);
+        if ($connection->fetchOne($select)) {
+            return; // Link already exists
+        }
+
+        // Get max sort order for the gallery
+        $selectMaxSort = $connection->select()->from($linkTable, 'MAX(sort_order)')
+            ->where('gallery_id = ?', $galleryId);
+        $maxSortOrder = (int)$connection->fetchOne($selectMaxSort);
+
+        // Insert the new link
+        $connection->insert($linkTable, [
+            'gallery_id' => $galleryId,
+            'asset_id' => $assetId,
+            'sort_order' => $maxSortOrder + 1,
+            'enabled' => 1
+        ]);
+    }
+
     public function pruneOrphanedGalleries(bool $dryRun = false): array
     {
         $connection = $this->resourceConnection->getConnection();
@@ -142,7 +184,6 @@ class AssetLinker
         $mediaGalleryAssetTable = $connection->getTableName('media_gallery_asset');
         $query = $connection->select()
             ->from(['mga' => $mediaGalleryAssetTable], ['id'])
-            // FINAL FIX: Use LIKE BINARY for a case-sensitive path comparison.
             ->where('mga.path LIKE BINARY ?', $galleryPath . '/%')
             ->joinLeft(
                 ['gmal' => $linkTable],

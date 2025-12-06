@@ -8,15 +8,15 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
-use Aws\S3\S3Client; // Keep for getAllS3Files method if not moved to adapter
-use Magento\Framework\App\DeploymentConfig; // Keep for getAllS3Files method if not moved to adapter
+use Aws\S3\S3Client;
+use Magento\Framework\App\DeploymentConfig;
 
 class S3AssetSynchronizer
 {
     private ResourceConnection $resourceConnection;
     private LoggerInterface $logger;
     private S3Adapter $s3Adapter;
-    private DeploymentConfig $deploymentConfig; // Keep for direct access if needed by S3Adapter's internal logic
+    private DeploymentConfig $deploymentConfig;
 
     public function __construct(
         ResourceConnection $resourceConnection,
@@ -27,7 +27,7 @@ class S3AssetSynchronizer
         $this->resourceConnection = $resourceConnection;
         $this->logger = $logger;
         $this->s3Adapter = $s3Adapter;
-        $this->deploymentConfig = $deploymentConfig; // Keep for now
+        $this->deploymentConfig = $deploymentConfig;
     }
 
     /**
@@ -35,7 +35,6 @@ class S3AssetSynchronizer
      */
     public function synchronize(bool $dryRun = false, bool $enableDeletion = false, bool $forceUpdate = false): array
     {
-        // Logic remains the same, but S3 interactions could be proxied if adapter is expanded
         $s3Files = $this->getAllS3Files();
         $s3Paths = array_keys($s3Files);
 
@@ -63,29 +62,7 @@ class S3AssetSynchronizer
         }
 
         if (!$dryRun) {
-            $connection = $this->resourceConnection->getConnection();
-            $tableName = $connection->getTableName('media_gallery_asset');
-
-            if (!empty($assetsToInsert)) {
-                $connection->insertMultiple($tableName, $assetsToInsert);
-            }
-            if (!empty($assetsToUpdate)) {
-                $connection->beginTransaction();
-                try {
-                    foreach ($assetsToUpdate as $asset) {
-                        $id = $asset['id'];
-                        unset($asset['id']);
-                        $connection->update($tableName, $asset, ['id = ?' => $id]);
-                    }
-                    $connection->commit();
-                } catch (Exception $e) {
-                    $connection->rollBack();
-                    throw $e;
-                }
-            }
-            if (!empty($pathsToDelete)) {
-                $connection->delete($tableName, ['path IN (?)' => $pathsToDelete]);
-            }
+            $this->applyDbChanges($assetsToInsert, $assetsToUpdate, $pathsToDelete);
         }
 
         return [
@@ -95,16 +72,78 @@ class S3AssetSynchronizer
         ];
     }
 
-    // This method is specific to the synchronizer, so it's okay it stays here,
-    // but it should use the S3 client from the adapter if possible.
-    // For now, keeping its own client logic to avoid breaking anything.
     /**
-     * @throws FileSystemException
-     * @throws RuntimeException
+     * @throws Exception
+     */
+    public function synchronizeSingle(string $path): void
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $tableName = $connection->getTableName('media_gallery_asset');
+
+        $select = $connection->select()->from($tableName)->where('path = ?', $path);
+        $existingAsset = $connection->fetchRow($select);
+
+        $s3Client = $this->getS3Client();
+        $bucket = $this->deploymentConfig->get('remote_storage/config/bucket');
+        $fullS3Key = $this->s3Adapter->getFullS3Path($path);
+
+        $objectData = $s3Client->headObject([
+            'Bucket' => $bucket,
+            'Key'    => $fullS3Key
+        ]);
+
+        $s3AssetData = [
+            'size' => $objectData['ContentLength'] ?? 0,
+            'hash' => trim($objectData['ETag'] ?? '', '"')
+        ];
+
+        $assetData = $this->prepareAssetData($path, $s3AssetData, $existingAsset ?: null);
+
+        if ($existingAsset) {
+            $connection->update($tableName, $assetData, ['id = ?' => $existingAsset['id']]);
+            $this->logger->info('[S3Sync] Updated asset: ' . $path);
+        } else {
+            $connection->insert($tableName, $assetData);
+            $this->logger->info('[S3Sync] Inserted new asset: ' . $path);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function applyDbChanges(array $toInsert, array $toUpdate, array $toDelete): void
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $tableName = $connection->getTableName('media_gallery_asset');
+
+        if (!empty($toInsert)) {
+            $connection->insertMultiple($tableName, $toInsert);
+        }
+        if (!empty($toUpdate)) {
+            $connection->beginTransaction();
+            try {
+                foreach ($toUpdate as $asset) {
+                    $id = $asset['id'];
+                    unset($asset['id']);
+                    $connection->update($tableName, $asset, ['id = ?' => $id]);
+                }
+                $connection->commit();
+            } catch (Exception $e) {
+                $connection->rollBack();
+                throw $e;
+            }
+        }
+        if (!empty($toDelete)) {
+            $connection->delete($tableName, ['path IN (?)' => $toDelete]);
+        }
+    }
+
+    /**
      * @throws Exception
      */
     private function getS3Client(): S3Client
     {
+        // This logic should ideally be fully encapsulated in S3Adapter
         $key = $this->deploymentConfig->get('remote_storage/config/credentials/key');
         $secret = $this->deploymentConfig->get('remote_storage/config/credentials/secret');
         $region = $this->deploymentConfig->get('remote_storage/config/region');
@@ -124,6 +163,7 @@ class S3AssetSynchronizer
     /**
      * @throws FileSystemException
      * @throws RuntimeException
+     * @throws Exception
      */
     private function getAllS3Files(): array
     {
@@ -134,17 +174,14 @@ class S3AssetSynchronizer
         $allFiles = [];
         $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket, 'Prefix' => $prefix]);
         foreach ($paginator as $result) {
-            $contents = $result->get('Contents');
-            if (is_array($contents)) {
-                foreach ($contents as $object) {
-                    if (substr($object['Key'], -1) !== '/') {
-                        $path = str_starts_with($object['Key'], $prefix) ? substr($object['Key'], strlen($prefix)) : $object['Key'];
-                        if (!empty($path)) {
-                            $allFiles[$path] = [
-                                'size' => $object['Size'],
-                                'hash' => trim($object['ETag'], '"')
-                            ];
-                        }
+            foreach ($result->get('Contents') ?? [] as $object) {
+                if (!str_ends_with($object['Key'], '/')) {
+                    $path = str_starts_with($object['Key'], $prefix) ? substr($object['Key'], strlen($prefix)) : $object['Key'];
+                    if (!empty($path)) {
+                        $allFiles[$path] = [
+                            'size' => $object['Size'],
+                            'hash' => trim($object['ETag'], '"')
+                        ];
                     }
                 }
             }
@@ -174,7 +211,7 @@ class S3AssetSynchronizer
         $width = isset($existingAsset['width']) ? (int)$existingAsset['width'] : 0;
         $height = isset($existingAsset['height']) ? (int)$existingAsset['height'] : 0;
 
-        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'];
         if (($width === 0 || $height === 0) && in_array($extension, $imageExtensions)) {
             try {
                 $s3Client = $this->getS3Client();
@@ -193,7 +230,7 @@ class S3AssetSynchronizer
 
         $mimeTypes = [
             'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
-            'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml',
+            'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml', 'avif' => 'image/avif',
             'mp4' => 'video/mp4', 'webm' => 'video/webm'
         ];
 
