@@ -8,6 +8,7 @@
             <module name="Magento_MediaGallery"/>
             <module name="Magento_AwsS3"/>
             <module name="GardenLawn_Core"/>
+            <module name="Magento_MediaGalleryUi"/>
         </sequence>
     </module>
 </config>
