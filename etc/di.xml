@@ -58,10 +58,4 @@
             <argument name="collection" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Grid\Collection</argument>
         </arguments>
     </type>
-
-    <!-- Trigger post-upload sync and link for modern image formats -->
-    <type name="Magento\MediaGalleryUi\Controller\Adminhtml\Image\Upload">
-        <plugin name="gardenlawn_mediagallery_post_upload_tasks"
-                type="GardenLawn\MediaGallery\Plugin\Controller\Adminhtml\Image\UploadPlugin" sortOrder="100"/>
-    </type>
 </config>
