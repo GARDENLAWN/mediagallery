@@ -1,4 +1,5 @@
 <?php
+
 namespace GardenLawn\MediaGallery\Service;
 
 use Exception;
@@ -20,10 +21,11 @@ class WebpConverter
      * @throws FileSystemException
      */
     public function __construct(
-        Filesystem $fileSystem,
-        AdapterFactory $imageAdapterFactory,
+        Filesystem      $fileSystem,
+        AdapterFactory  $imageAdapterFactory,
         LoggerInterface $logger
-    ) {
+    )
+    {
         $this->fileSystem = $fileSystem;
         $this->mediaDirectory = $fileSystem->getDirectoryWrite(DirectoryList::MEDIA);
         $this->imageAdapterFactory = $imageAdapterFactory;
@@ -40,7 +42,8 @@ class WebpConverter
         bool $createThumbnail = false,
         int $thumbnailWidth = 240,
         int $thumbnailHeight = 240
-    ): array|false|string {
+    ): array|false|string
+    {
         $localTempDir = $this->mediaDirectory->getAbsolutePath('webp_temp');
         if (!$this->mediaDirectory->isExist($localTempDir)) {
             $this->mediaDirectory->create($localTempDir);
@@ -67,6 +70,9 @@ class WebpConverter
                 $imageAdapter->setQuality($quality);
             }
 
+            $imageAdapter->keepAspectRatio(true);
+            $imageAdapter->keepTransparency(true);
+
             $this->log($output, "  -> Saving as WebP locally to <comment>$localWebpPath</comment>...");
             $imageAdapter->save($localWebpPath);
 
@@ -75,7 +81,8 @@ class WebpConverter
             $success = true;
 
             if ($createThumbnail) {
-                $this->createThumbnail($localWebpPath, $s3WebpPath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
+                // FIX: Create thumbnail from the original source file, not the intermediate WebP.
+                $this->createThumbnail($localTempPath, $s3WebpPath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
             }
 
         } catch (Exception $e) {
@@ -103,10 +110,10 @@ class WebpConverter
         return '.thumbs' . $pathParts[0] . '/' . $pathParts[1];
     }
 
-    private function createThumbnail($sourceLocalWebp, $s3WebpPath, $width, $height, $quality, $output, &$filesToClean): void
+    private function createThumbnail($sourceLocalOriginal, $s3WebpPath, $width, $height, $quality, $output, &$filesToClean): void
     {
         try {
-            $this->log($output, "  -> Creating thumbnail...");
+            $this->log($output, "  -> Creating thumbnail from original source...");
             $thumbnailS3Path = $this->getThumbnailPath($s3WebpPath);
             if (!$thumbnailS3Path) {
                 $this->log($output, "  -> <comment>Skipping thumbnail: image is in media root.</comment>");
@@ -117,19 +124,16 @@ class WebpConverter
             $localThumbnailPath = $this->mediaDirectory->getAbsolutePath('webp_temp/' . $uniqueThumbName);
             $filesToClean[] = $localThumbnailPath;
 
-            $this->log($output, "  -> Opening local WebP <comment>$sourceLocalWebp</comment> for thumbnailing...");
+            $this->log($output, "  -> Opening original local file <comment>$sourceLocalOriginal</comment> for thumbnailing...");
             $thumbAdapter = $this->imageAdapterFactory->create();
-            $thumbAdapter->open($sourceLocalWebp);
+            $thumbAdapter->open($sourceLocalOriginal);
 
             if (method_exists($thumbAdapter, 'setQuality')) {
                 $this->log($output, "  -> Setting thumbnail quality to <comment>$quality</comment>...");
                 $thumbAdapter->setQuality($quality);
             }
 
-            $this->log($output, "  -> Setting keep aspect ratio to true...");
             $thumbAdapter->keepAspectRatio(true);
-
-            $this->log($output, "  -> Setting keep transparency to true...");
             $thumbAdapter->keepTransparency(true);
 
             $this->log($output, "  -> Resizing to fit within <comment>{$width}x{$height}</comment>...");
