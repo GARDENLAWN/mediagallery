@@ -66,7 +66,8 @@ class S3Adapter
         $s3Client->putObject([
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
-            'Body' => ''
+            'Body' => '',
+            'CacheControl' => 'public, max-age=31536000'
         ]);
     }
 
@@ -120,6 +121,7 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
             'SourceFile' => $filePath,
+            'CacheControl' => 'public, max-age=31536000'
         ]);
     }
 
