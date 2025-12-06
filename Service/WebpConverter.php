@@ -5,6 +5,7 @@ use Exception;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Image\Adapter\AdapterInterface;
 use Magento\Framework\Image\AdapterFactory;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -75,7 +76,7 @@ class WebpConverter
             $success = true;
 
             if ($createThumbnail) {
-                $this->createWebpThumbnail($localTempPath, $s3WebpPath, $output, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
+                $this->createThumbnail($localTempPath, $sourceFilePath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
             }
 
         } catch (Exception $e) {
@@ -105,7 +106,6 @@ class WebpConverter
 
         $uniqueTempName = str_replace('/', '_', $sourceFilePath);
         $localTempPath = $localTempDir . '/' . $uniqueTempName;
-        $s3WebpPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $sourceFilePath);
 
         $filesToClean = [$localTempPath];
         $success = false;
@@ -113,7 +113,7 @@ class WebpConverter
         try {
             $this->log($output, "  -> Downloading original <comment>$sourceFilePath</comment> for thumbnailing...");
             $this->mediaDirectory->copyFile($sourceFilePath, $localTempPath);
-            $success = $this->createThumbnailFromLocalSource($localTempPath, $s3WebpPath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
+            $success = $this->createThumbnail($localTempPath, $sourceFilePath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
         } catch (Exception $e) {
             $this->log($output, "  -> <error>Thumbnail-only creation failed: {$e->getMessage()}</error>");
             $this->logger->error("Thumbnail-only creation failed for {$sourceFilePath}: " . $e->getMessage());
@@ -124,51 +124,73 @@ class WebpConverter
         return $success;
     }
 
-    public function getThumbnailPath(string $webpPath): ?string
+    public function getThumbnailPath(string $sourcePath): ?string
     {
-        $pathParts = explode('/', $webpPath, 2);
+        $pathParts = explode('/', $sourcePath, 2);
         if (count($pathParts) < 2) {
             return null;
         }
         return '.thumbs' . $pathParts[0] . '/' . $pathParts[1];
     }
 
-    private function createThumbnailFromLocalSource($sourceLocalOriginal, $s3WebpPath, $width, $height, $quality, $output, &$filesToClean): bool
+    private function createThumbnail($sourceLocalOriginal, $sourceRelativePath, $width, $height, $quality, $output, &$filesToClean): bool
     {
-        $this->log($output, "  -> Creating thumbnail from original source...");
-        $thumbnailS3Path = $this->getThumbnailPath($s3WebpPath);
-        if (!$thumbnailS3Path) {
-            $this->log($output, "  -> <comment>Skipping thumbnail: image is in media root.</comment>");
+        try {
+            $this->log($output, "  -> Creating thumbnail from original source...");
+
+            $sourceExtension = strtolower(pathinfo($sourceLocalOriginal, PATHINFO_EXTENSION));
+            $copyOnlyExtensions = ['webp', 'svg'];
+
+            $thumbnailS3Path = $this->getThumbnailPath($sourceRelativePath);
+            if (!$thumbnailS3Path) {
+                $this->log($output, "  -> <comment>Skipping thumbnail: image is in media root.</comment>");
+                return false;
+            }
+
+            // For JPG/PNG sources, the thumbnail should be WebP. For SVG, it stays SVG.
+            if (!in_array($sourceExtension, ['svg'])) {
+                $thumbnailS3Path = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $thumbnailS3Path);
+            }
+
+            if (in_array($sourceExtension, $copyOnlyExtensions)) {
+                $this->log($output, "  -> Source is '{$sourceExtension}', copying directly without resizing...");
+                $sourceContent = file_get_contents($sourceLocalOriginal);
+                $this->mediaDirectory->writeFile($thumbnailS3Path, $sourceContent);
+                $this->log($output, "  -> <info>Thumbnail copied successfully to {$thumbnailS3Path}.</info>");
+            } else {
+                $uniqueThumbName = str_replace('/', '_', $thumbnailS3Path);
+                $localThumbnailPath = $this->mediaDirectory->getAbsolutePath('webp_temp/' . $uniqueThumbName);
+                $filesToClean[] = $localThumbnailPath;
+
+                $this->log($output, "  -> Opening original local file <comment>$sourceLocalOriginal</comment> for thumbnailing...");
+                $thumbAdapter = $this->imageAdapterFactory->create();
+                $thumbAdapter->open($sourceLocalOriginal);
+
+                if (method_exists($thumbAdapter, 'setQuality')) {
+                    $this->log($output, "  -> Setting thumbnail quality to <comment>$quality</comment>...");
+                    $thumbAdapter->setQuality($quality);
+                }
+
+                $this->log($output, "  -> Setting keep aspect ratio to true...");
+                $thumbAdapter->keepAspectRatio(true);
+
+                $this->log($output, "  -> Resizing to fit within <comment>{$width}x{$height}</comment>...");
+                $thumbAdapter->resize($width, $height);
+
+                $this->log($output, "  -> Saving thumbnail locally to <comment>$localThumbnailPath</comment>...");
+                $thumbAdapter->save($localThumbnailPath);
+
+                $this->log($output, "  -> Uploading thumbnail to S3 at <comment>$thumbnailS3Path</comment>...");
+                $thumbContent = file_get_contents($localThumbnailPath);
+                $this->mediaDirectory->writeFile($thumbnailS3Path, $thumbContent);
+                $this->log($output, "  -> <info>Thumbnail created successfully.</info>");
+            }
+            return true;
+        } catch (Exception $e) {
+            $this->log($output, "  -> <error>Thumbnail creation failed: {$e->getMessage()}</error>");
+            $this->logger->error("Thumbnail creation failed for {$sourceRelativePath}: " . $e->getMessage());
             return false;
         }
-
-        $uniqueThumbName = str_replace('/', '_', $thumbnailS3Path);
-        $localThumbnailPath = $this->mediaDirectory->getAbsolutePath('webp_temp/' . $uniqueThumbName);
-        $filesToClean[] = $localThumbnailPath;
-
-        $this->log($output, "  -> Opening original local file <comment>$sourceLocalOriginal</comment> for thumbnailing...");
-        $thumbAdapter = $this->imageAdapterFactory->create();
-        $thumbAdapter->open($sourceLocalOriginal);
-
-        if (method_exists($thumbAdapter, 'setQuality')) {
-            $this->log($output, "  -> Setting thumbnail quality to <comment>$quality</comment>...");
-            $thumbAdapter->setQuality($quality);
-        }
-
-        $this->log($output, "  -> Setting keep aspect ratio to true...");
-        $thumbAdapter->keepAspectRatio(true);
-
-        $this->log($output, "  -> Resizing to fit within <comment>{$width}x{$height}</comment>...");
-        $thumbAdapter->resize($width, $height);
-
-        $this->log($output, "  -> Saving thumbnail locally to <comment>$localThumbnailPath</comment>...");
-        $thumbAdapter->save($localThumbnailPath);
-
-        $this->log($output, "  -> Uploading thumbnail to S3 at <comment>$thumbnailS3Path</comment>...");
-        $this->mediaDirectory->copyFile($localThumbnailPath, $thumbnailS3Path);
-        $this->log($output, "  -> <info>Thumbnail created successfully.</info>");
-
-        return true;
     }
 
     /**
