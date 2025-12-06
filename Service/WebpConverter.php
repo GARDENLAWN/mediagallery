@@ -5,6 +5,8 @@ use Exception;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Image\Adapter\AdapterInterface;
+use Magento\Framework\Image\Adapter\Gd2 as Gd2Adapter;
 use Magento\Framework\Image\AdapterFactory;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -58,8 +60,15 @@ class WebpConverter
             $this->mediaDirectory->copyFile($sourceFilePath, $localTempPath);
 
             $this->log($output, "  -> Opening image with adapter...");
+            /** @var AdapterInterface|Gd2Adapter $imageAdapter */
             $imageAdapter = $this->imageAdapterFactory->create();
             $imageAdapter->open($localTempPath);
+
+            // Fix for palette-based PNGs issue with GD2
+            if ($imageAdapter instanceof Gd2Adapter && imageistruecolor($imageAdapter->getImage()) === false) {
+                $this->log($output, "  -> <comment>Palette image detected. Converting to true color to prevent errors.</comment>");
+                $imageAdapter->resize($imageAdapter->getOriginalWidth(), $imageAdapter->getOriginalHeight());
+            }
 
             if (method_exists($imageAdapter, 'setQuality')) {
                 $this->log($output, "  -> Setting quality to <comment>$quality</comment>...");
