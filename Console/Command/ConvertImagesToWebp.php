@@ -17,7 +17,7 @@ use Magento\Framework\Console\Cli;
 class ConvertImagesToWebp extends Command
 {
     private const string COMMAND_NAME = 'gardenlawn:gallery:convert-to-webp';
-    private const string COMMAND_DESCRIPTION = 'Converts images in S3 media gallery to WebP format and cleans up legacy .ext.webp files.';
+    private const string COMMAND_DESCRIPTION = 'Converts images in S3 media gallery to WebP format, creates thumbnails, and cleans up legacy files.';
 
     private State $appState;
     private S3Adapter $s3Adapter;
@@ -53,7 +53,9 @@ class ConvertImagesToWebp extends Command
             // Area code is already set
         }
 
-        $output->writeln('<info>Starting WebP conversion and cleanup process for S3 media...</info>');
+        $output->writeln('<info>Starting WebP conversion, thumbnail generation, and cleanup process for S3 media...</info>');
+
+        $cleanedCount = $this->cleanupLegacyFiles($output);
 
         $excludedPrefixes = [
             'pub/media/catalog/',
@@ -65,7 +67,6 @@ class ConvertImagesToWebp extends Command
         $processedCount = 0;
         $convertedCount = 0;
         $skippedCount = 0;
-        $cleanedCount = 0;
         $errorCount = 0;
 
         try {
@@ -88,23 +89,8 @@ class ConvertImagesToWebp extends Command
                 $output->writeln("Processing: <comment>$s3Key</comment>");
 
                 $mediaRelativePath = substr($s3Key, strlen($mediaPrefix));
-                $legacyWebpPath = $mediaRelativePath . '.webp';
                 $correctWebpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mediaRelativePath);
 
-                // Cleanup legacy .ext.webp files
-                if ($this->s3Adapter->doesObjectExist($legacyWebpPath)) {
-                    $output->writeln("  -> Found legacy WebP file: <comment>$legacyWebpPath</comment>. Deleting...");
-                    try {
-                        $this->s3Adapter->deleteObject($legacyWebpPath);
-                        $output->writeln("  -> <info>Successfully deleted.</info>");
-                        $cleanedCount++;
-                    } catch (Exception $e) {
-                        $output->writeln("  -> <error>Failed to delete legacy file: {$e->getMessage()}</error>");
-                        $this->logger->error("Failed to delete legacy WebP file $legacyWebpPath: " . $e->getMessage());
-                    }
-                }
-
-                // Convert to correctly named .webp file if it doesn't exist
                 if ($this->s3Adapter->doesObjectExist($correctWebpPath)) {
                     $output->writeln("  -> Correct WebP version already exists. Skipping conversion.");
                     $skippedCount++;
@@ -114,7 +100,7 @@ class ConvertImagesToWebp extends Command
                 $output->writeln("  -> Correct WebP version not found. Converting...");
 
                 try {
-                    $result = true;//$this->webpConverter->convertAndSave($mediaRelativePath, 89, $output);
+                    $result = $this->webpConverter->convertAndSave($mediaRelativePath, 80, $output, true);
                     if ($result) {
                         $output->writeln("  -> <info>Successfully converted and saved to $result</info>");
                         $convertedCount++;
@@ -134,6 +120,8 @@ class ConvertImagesToWebp extends Command
             return Cli::RETURN_FAILURE;
         }
 
+        $this->cleanupTmpFolder($output);
+
         $output->writeln('');
         $output->writeln('<info>--------------------</info>');
         $output->writeln('<info>Conversion Summary</info>');
@@ -145,5 +133,54 @@ class ConvertImagesToWebp extends Command
         $output->writeln("Errors: <error>$errorCount</error>");
 
         return Cli::RETURN_SUCCESS;
+    }
+
+    private function cleanupLegacyFiles(OutputInterface $output): int
+    {
+        $output->writeln('<info>Searching for and cleaning up legacy .webp files (e.g., .jpg.webp, .webp.webp)...</info>');
+        $cleanedCount = 0;
+        $mediaPrefix = 'pub/media/';
+
+        try {
+            $webpFiles = $this->s3Adapter->listObjects('', ['webp']);
+            foreach ($webpFiles as $s3Key) {
+                $mediaRelativePath = substr($s3Key, strlen($mediaPrefix));
+                $filename = basename($mediaRelativePath);
+
+                // Check for .ext.webp or .webp.webp
+                if (preg_match('/\.(jpg|jpeg|png|webp)\.webp$/i', $filename)) {
+                    $output->writeln("  -> Found legacy WebP file: <comment>$mediaRelativePath</comment>. Deleting...");
+                    try {
+                        $this->s3Adapter->deleteObject($mediaRelativePath);
+                        $output->writeln("  -> <info>Successfully deleted.</info>");
+                        $cleanedCount++;
+                    } catch (Exception $e) {
+                        $output->writeln("  -> <error>Failed to delete legacy file: {$e->getMessage()}</error>");
+                        $this->logger->error("Failed to delete legacy WebP file $mediaRelativePath: " . $e->getMessage());
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $output->writeln("<error>An error occurred during legacy file cleanup: {$e->getMessage()}</error>");
+            $this->logger->error("Legacy file cleanup failed: " . $e->getMessage());
+        }
+
+        $output->writeln("<info>Finished cleanup. Found and deleted $cleanedCount legacy files.</info>");
+        return $cleanedCount;
+    }
+
+    private function cleanupTmpFolder(OutputInterface $output): void
+    {
+        $output->writeln('');
+        $output->writeln('<info>Cleaning up tmp folder in S3...</info>');
+        try {
+            $this->s3Adapter->deleteFolder('tmp');
+            $output->writeln('  -> <info>tmp folder and its contents deleted.</info>');
+            $this->s3Adapter->createFolder('tmp');
+            $output->writeln('  -> <info>Empty tmp folder recreated.</info>');
+        } catch (Exception $e) {
+            $output->writeln("  -> <error>Could not clean up tmp folder: {$e->getMessage()}</error>");
+            $this->logger->error("Could not clean up tmp folder: " . $e->getMessage());
+        }
     }
 }
