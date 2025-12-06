@@ -154,8 +154,8 @@ class WebpConverter
 
             if (in_array($sourceExtension, $copyOnlyExtensions)) {
                 $this->log($output, "  -> Source is '{$sourceExtension}', copying directly without resizing...");
-                $sourceContent = file_get_contents($sourceLocalOriginal);
-                $this->mediaDirectory->writeFile($thumbnailS3Path, $sourceContent);
+                // FIX: Use copyFile for S3 compatibility
+                $this->mediaDirectory->copyFile($sourceLocalOriginal, $thumbnailS3Path);
                 $this->log($output, "  -> <info>Thumbnail copied successfully to {$thumbnailS3Path}.</info>");
             } else {
                 $uniqueThumbName = str_replace('/', '_', $thumbnailS3Path);
@@ -163,6 +163,7 @@ class WebpConverter
                 $filesToClean[] = $localThumbnailPath;
 
                 $this->log($output, "  -> Opening original local file <comment>$sourceLocalOriginal</comment> for thumbnailing...");
+                /** @var AdapterInterface $thumbAdapter */
                 $thumbAdapter = $this->imageAdapterFactory->create();
                 $thumbAdapter->open($sourceLocalOriginal);
 
@@ -181,8 +182,8 @@ class WebpConverter
                 $thumbAdapter->save($localThumbnailPath);
 
                 $this->log($output, "  -> Uploading thumbnail to S3 at <comment>$thumbnailS3Path</comment>...");
-                $thumbContent = file_get_contents($localThumbnailPath);
-                $this->mediaDirectory->writeFile($thumbnailS3Path, $thumbContent);
+                // FIX: Use copyFile for S3 compatibility
+                $this->mediaDirectory->copyFile($localThumbnailPath, $thumbnailS3Path);
                 $this->log($output, "  -> <info>Thumbnail created successfully.</info>");
             }
             return true;
