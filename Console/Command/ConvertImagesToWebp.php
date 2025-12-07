@@ -162,7 +162,7 @@ class ConvertImagesToWebp extends Command
                             $this->s3Adapter->deleteObject($thumbnailPath);
                             $deletedForForceCount++;
                         }
-                        $result = $this->webpConverter->createWebpThumbnail($mediaRelativePath, 89, $output);
+                        $result = $this->webpConverter->createWebpThumbnail($mediaRelativePath, 80, $output);
                         if ($result) {
                             $thumbOnlyCount++;
                         } else {
@@ -201,7 +201,7 @@ class ConvertImagesToWebp extends Command
 
                     $output->writeln("  -> Converting...");
                     try {
-                        $result = $this->webpConverter->convertAndSave($mediaRelativePath, 89, $output, true);
+                        $result = $this->webpConverter->convertAndSave($mediaRelativePath, 80, $output, true);
                         if ($result) {
                             $convertedCount++;
                         } else {
