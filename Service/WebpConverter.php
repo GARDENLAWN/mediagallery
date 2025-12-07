@@ -36,7 +36,7 @@ class WebpConverter
      */
     public function convertAndSave(
         $sourceFilePath,
-        $quality = 89,
+        $quality = 80,
         OutputInterface $output = null,
         bool $createThumbnail = false,
         int $thumbnailWidth = 240,
@@ -94,7 +94,7 @@ class WebpConverter
      */
     public function createWebpThumbnail(
         $sourceFilePath,
-        $quality = 89,
+        $quality = 80,
         OutputInterface $output = null,
         int $thumbnailWidth = 240,
         int $thumbnailHeight = 240
