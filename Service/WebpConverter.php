@@ -124,6 +124,44 @@ class WebpConverter
         return $success;
     }
 
+    /**
+     * Re-uploads a file from S3 back to S3 to refresh its metadata.
+     *
+     * @param string $s3FilePath The S3 path of the file to re-upload.
+     * @param OutputInterface|null $output
+     * @return bool True on success, false on failure.
+     * @throws FileSystemException
+     */
+    public function reUploadFile(string $s3FilePath, ?OutputInterface $output = null): bool
+    {
+        $localTempDir = $this->mediaDirectory->getAbsolutePath('webp_temp');
+        if (!$this->mediaDirectory->isExist($localTempDir)) {
+            $this->mediaDirectory->create($localTempDir);
+        }
+
+        $uniqueTempName = str_replace('/', '_', $s3FilePath);
+        $localTempPath = $localTempDir . '/' . $uniqueTempName;
+
+        $filesToClean = [$localTempPath];
+        $success = false;
+
+        try {
+            $this->log($output, "  -> Downloading <comment>$s3FilePath</comment> to temporary directory for re-upload...");
+            $this->mediaDirectory->copyFile($s3FilePath, $localTempPath);
+
+            $this->log($output, "  -> Re-uploading <comment>$s3FilePath</comment> to refresh metadata...");
+            $this->mediaDirectory->copyFile($localTempPath, $s3FilePath);
+            $success = true;
+        } catch (Exception $e) {
+            $this->log($output, "  -> <error>Re-upload failed for $s3FilePath: {$e->getMessage()}</error>");
+            $this->logger->error("Re-upload failed for $s3FilePath: " . $e->getMessage());
+        } finally {
+            $this->cleanupTempFiles($filesToClean, $output);
+        }
+
+        return $success;
+    }
+
     public function getThumbnailPath(string $sourcePath): ?string
     {
         $pathParts = explode('/', $sourcePath, 2);

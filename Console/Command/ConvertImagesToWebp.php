@@ -48,7 +48,7 @@ class ConvertImagesToWebp extends Command
             self::OPTION_FORCE,
             '-f',
             InputOption::VALUE_NONE,
-            'Force regeneration of existing WebP files and thumbnails.'
+            'Force regeneration of existing WebP files and thumbnails, and refreshes metadata for original WebP files.'
         );
         parent::configure();
     }
@@ -64,7 +64,7 @@ class ConvertImagesToWebp extends Command
         $isForce = $input->getOption(self::OPTION_FORCE);
         $output->writeln('<info>Starting WebP conversion process...</info>');
         if ($isForce) {
-            $output->writeln('<comment>Force mode is enabled. Existing WebP files will be regenerated.</comment>');
+            $output->writeln('<comment>Force mode is enabled. Existing WebP files will be regenerated/refreshed.</comment>');
         }
 
         $cleanedCount = $this->cleanupLegacyFiles($output);
@@ -76,7 +76,8 @@ class ConvertImagesToWebp extends Command
             'pub/media/.thumbs',
         ];
         $catalogDir = 'pub/media/catalog/';
-        $imageExtensions = ['jpg', 'jpeg', 'png', 'svg']; // Add SVG to process
+        // Now include 'webp' in the extensions to list, as they can be source files too.
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
         $mediaPrefix = 'pub/media/';
 
         $processedCount = 0;
@@ -85,6 +86,7 @@ class ConvertImagesToWebp extends Command
         $skippedCount = 0;
         $errorCount = 0;
         $deletedForForceCount = 0;
+        $refreshedOriginalWebpCount = 0; // New counter for original WebP files
 
         try {
             $objects = $this->s3Adapter->listObjects('', $imageExtensions);
@@ -107,21 +109,57 @@ class ConvertImagesToWebp extends Command
 
                 $mediaRelativePath = substr($s3Key, strlen($mediaPrefix));
                 $isCatalogImage = str_starts_with($s3Key, $catalogDir);
+                $sourceExtension = strtolower(pathinfo($mediaRelativePath, PATHINFO_EXTENSION));
 
+                // Handle original WebP files (not derived, not thumbnails)
+                if ($sourceExtension === 'webp' && !str_contains($s3Key, '.thumbs')) {
+                    // Check if this WebP file is a "derived" one (e.g., from a JPG/PNG source)
+                    // If it is, we'll let the JPG/PNG source handle its regeneration.
+                    // If it's a standalone WebP, we treat it as an original.
+                    $isDerivedWebp = false;
+                    foreach (['jpg', 'jpeg', 'png'] as $originalExt) {
+                        $potentialOriginalSource = preg_replace('/\.webp$/i', '.' . $originalExt, $mediaRelativePath);
+                        if ($this->s3Adapter->doesObjectExist($mediaPrefix . $potentialOriginalSource)) {
+                            $isDerivedWebp = true;
+                            break;
+                        }
+                    }
+
+                    if (!$isDerivedWebp) {
+                        // This is an original WebP file (no JPG/PNG source found)
+                        if ($isForce) {
+                            $output->writeln("  -> Original WebP detected. Force mode: Re-uploading to refresh metadata.");
+                            try {
+                                // Call a new method in WebpConverter to re-upload
+                                $this->webpConverter->reUploadFile($mediaRelativePath, $output);
+                                $refreshedOriginalWebpCount++;
+                            } catch (Exception $e) {
+                                $output->writeln("  -> <error>Failed to re-upload original WebP: {$e->getMessage()}</error>");
+                                $errorCount++;
+                            }
+                        } else {
+                            $output->writeln("  -> Original WebP already exists. Skipping.");
+                            $skippedCount++;
+                        }
+                        continue; // Move to the next object
+                    }
+                }
+
+                // Existing logic for JPG/PNG/SVG sources (and derived WebP files will be handled here if their source exists)
                 if ($isCatalogImage) {
                     $output->writeln("  -> Catalog image detected. Generating thumbnail only.");
 
-                    $sourceExtension = strtolower(pathinfo($mediaRelativePath, PATHINFO_EXTENSION));
+                    // For catalog images, the thumbnail path for SVG should be .svg, others .webp
                     $thumbnailPath = $this->webpConverter->getThumbnailPath($mediaRelativePath);
-
                     if ($sourceExtension !== 'svg') {
                         $thumbnailPath = str_replace(['.jpg', '.png', '.jpeg'], '.webp', $thumbnailPath);
                     }
 
-                    if ($thumbnailPath && !$this->s3Adapter->doesObjectExist($thumbnailPath) || $isForce) {
+                    if ($thumbnailPath && (!$this->s3Adapter->doesObjectExist($thumbnailPath) || $isForce)) {
                         if ($isForce && $thumbnailPath && $this->s3Adapter->doesObjectExist($thumbnailPath)) {
                             $output->writeln("  -> <comment>Force mode: Deleting existing thumbnail...</comment>");
                             $this->s3Adapter->deleteObject($thumbnailPath);
+                            $deletedForForceCount++;
                         }
                         $result = $this->webpConverter->createWebpThumbnail($mediaRelativePath, 89, $output);
                         if ($result) {
@@ -134,7 +172,7 @@ class ConvertImagesToWebp extends Command
                         $skippedCount++;
                     }
                 } else {
-                    // For other images, do the full conversion
+                    // For other images (non-catalog, non-original-webp), do the full conversion
                     $correctWebpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $mediaRelativePath);
 
                     if ($this->s3Adapter->doesObjectExist($correctWebpPath)) {
@@ -190,9 +228,10 @@ class ConvertImagesToWebp extends Command
         $output->writeln("Processed source images: <comment>$processedCount</comment>");
         $output->writeln("Legacy files cleaned: <info>$cleanedCount</info>");
         if ($isForce) {
-            $output->writeln("Files deleted for regeneration: <comment>$deletedForForceCount</comment>");
+            $output->writeln("Original WebP files refreshed: <info>$refreshedOriginalWebpCount</info>");
+            $output->writeln("Derived files deleted for regeneration: <comment>$deletedForForceCount</comment>");
         }
-        $output->writeln("Full conversions: <info>$convertedCount</info>");
+        $output->writeln("Full conversions (from JPG/PNG/SVG): <info>$convertedCount</info>");
         $output->writeln("Thumbnails only (for catalog): <info>$thumbOnlyCount</info>");
         $output->writeln("Skipped (already exist): <comment>$skippedCount</comment>");
         $output->writeln("Errors: <error>$errorCount</error>");
