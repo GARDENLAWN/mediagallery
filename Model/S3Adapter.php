@@ -130,6 +130,40 @@ class S3Adapter
     }
 
     /**
+     * @param string $content The file content to upload.
+     * @param string $destinationKey The full S3 key (path) for the destination object.
+     * @throws Exception
+     */
+    public function uploadContent(string $content, string $destinationKey): void
+    {
+        $s3Client = $this->getS3Client();
+
+        $s3Client->putObject([
+            'Bucket' => $this->bucket,
+            'Key' => $destinationKey,
+            'Body' => $content,
+            'ContentType' => $this->getContentTypeByPath($destinationKey),
+            'Metadata' => [
+                'CacheControl' => 'public, max-age=31536000'
+            ]
+        ]);
+    }
+
+    /**
+     * Get the S3 prefix for a given storage type (e.g., 'static', 'media').
+     * @throws Exception
+     */
+    public function getPrefixedPath(string $storageType, string $filePath): string
+    {
+        $this->getS3Client(); // Ensure client and properties are initialized
+        $storageType = rtrim($storageType, '/');
+        $filePath = ltrim($filePath, '/');
+        $prefix = $this->s3Prefix ? rtrim($this->s3Prefix, '/') . '/' : '';
+
+        return $prefix . $storageType . '/' . $filePath;
+    }
+
+    /**
      * @throws Exception
      */
     public function listObjects(string $prefix = '', array $extensions = []): \Generator
@@ -180,5 +214,33 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
         ]);
+    }
+
+    /**
+     * Determines the MIME type of a file based on its extension.
+     */
+    private function getContentTypeByPath(string $path): string
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $map = [
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'svg' => 'image/svg+xml',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'avif' => 'image/avif',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'eot' => 'application/vnd.ms-fontobject',
+            'otf' => 'font/otf',
+            'json' => 'application/json',
+            'html' => 'text/html',
+            'xml' => 'application/xml',
+        ];
+        return $map[$ext] ?? 'application/octet-stream';
     }
 }
