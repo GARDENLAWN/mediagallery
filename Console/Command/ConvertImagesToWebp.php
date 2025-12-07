@@ -27,12 +27,13 @@ class ConvertImagesToWebp extends Command
     private LoggerInterface $logger;
 
     public function __construct(
-        State $appState,
-        S3Adapter $s3Adapter,
-        WebpConverter $webpConverter,
+        State           $appState,
+        S3Adapter       $s3Adapter,
+        WebpConverter   $webpConverter,
         LoggerInterface $logger,
-        string $name = null
-    ) {
+        string          $name = null
+    )
+    {
         $this->appState = $appState;
         $this->s3Adapter = $s3Adapter;
         $this->webpConverter = $webpConverter;
@@ -146,7 +147,7 @@ class ConvertImagesToWebp extends Command
                 }
 
                 // Existing logic for JPG/PNG/SVG sources (and derived WebP files will be handled here if their source exists)
-                if ($isCatalogImage) {
+                if ($isCatalogImage && !str_contains($s3Key, '/cache/')) {
                     $output->writeln("  -> Catalog image detected. Generating thumbnail only.");
 
                     // For catalog images, the thumbnail path for SVG should be .svg, others .webp
