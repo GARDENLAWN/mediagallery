@@ -74,6 +74,7 @@ class ConvertImagesToWebp extends Command
             'pub/media/tmp/',
             'var/tmp/',
             'webp_temp/',
+            'pub/media/catalog/product/cache/',
             'pub/media/.thumbs',
         ];
         $catalogDir = 'pub/media/catalog/';
