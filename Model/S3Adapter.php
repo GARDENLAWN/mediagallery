@@ -67,7 +67,9 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
             'Body' => '',
-            'CacheControl' => 'public, max-age=31536000'
+            'Metadata' => [
+                'CacheControl' => 'public, max-age=31536000'
+            ]
         ]);
     }
 
@@ -121,7 +123,9 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
             'SourceFile' => $filePath,
-            'CacheControl' => 'public, max-age=31536000'
+            'Metadata' => [
+                'CacheControl' => 'public, max-age=31536000'
+            ]
         ]);
     }
 
