@@ -39,8 +39,8 @@ class WebpConverter
         $quality = 80,
         OutputInterface $output = null,
         bool $createThumbnail = false,
-        int $thumbnailWidth = 240,
-        int $thumbnailHeight = 240
+        int $thumbnailWidth = 120,
+        int $thumbnailHeight = 120
     ): array|false|string {
         $localTempDir = $this->mediaDirectory->getAbsolutePath('webp_temp');
         if (!$this->mediaDirectory->isExist($localTempDir)) {
@@ -96,8 +96,8 @@ class WebpConverter
         $sourceFilePath,
         $quality = 80,
         OutputInterface $output = null,
-        int $thumbnailWidth = 240,
-        int $thumbnailHeight = 240
+        int $thumbnailWidth = 120,
+        int $thumbnailHeight = 120
     ): bool {
         $localTempDir = $this->mediaDirectory->getAbsolutePath('webp_temp');
         if (!$this->mediaDirectory->isExist($localTempDir)) {
