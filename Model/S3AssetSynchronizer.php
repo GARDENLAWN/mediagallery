@@ -20,10 +20,11 @@ class S3AssetSynchronizer
 
     public function __construct(
         ResourceConnection $resourceConnection,
-        LoggerInterface $logger,
-        S3Adapter $s3Adapter,
-        DeploymentConfig $deploymentConfig
-    ) {
+        LoggerInterface    $logger,
+        S3Adapter          $s3Adapter,
+        DeploymentConfig   $deploymentConfig
+    )
+    {
         $this->resourceConnection = $resourceConnection;
         $this->logger = $logger;
         $this->s3Adapter = $s3Adapter;
@@ -89,7 +90,7 @@ class S3AssetSynchronizer
 
         $objectData = $s3Client->headObject([
             'Bucket' => $bucket,
-            'Key'    => $fullS3Key
+            'Key' => $fullS3Key
         ]);
 
         $s3AssetData = [
@@ -175,7 +176,12 @@ class S3AssetSynchronizer
         $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket, 'Prefix' => $prefix]);
         foreach ($paginator as $result) {
             foreach ($result->get('Contents') ?? [] as $object) {
-                if (!str_ends_with($object['Key'], '/')) {
+                if (!str_ends_with($object['Key'], '/') &&
+                    !str_contains($object['Key'], '/cache/') &&
+                    !str_starts_with($object['Key'], '.thumbs') &&
+                    !str_starts_with($object['Key'], 'tmp/') &&
+                    !str_starts_with($object['Key'], 'webp_temp/')
+                ) {
                     $path = str_starts_with($object['Key'], $prefix) ? substr($object['Key'], strlen($prefix)) : $object['Key'];
                     if (!empty($path)) {
                         $allFiles[$path] = [
