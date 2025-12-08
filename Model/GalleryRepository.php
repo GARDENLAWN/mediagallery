@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace GardenLawn\MediaGallery\Model;
 
 use Exception;
-use GardenLawn\MediaGallery\Model\S3Adapter;
+use GardenLawn\Core\Model\S3Adapter;
 use GardenLawn\MediaGallery\Api\Data\GalleryInterface;
 use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery as GalleryResource;

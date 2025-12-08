@@ -2,7 +2,7 @@
 namespace GardenLawn\MediaGallery\Cron;
 
 use Psr\Log\LoggerInterface;
-use GardenLawn\MediaGallery\Model\S3AssetSynchronizer;
+use GardenLawn\Core\Model\S3AssetSynchronizer;
 
 class SyncS3
 {
