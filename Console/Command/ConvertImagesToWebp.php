@@ -73,7 +73,7 @@ class ConvertImagesToWebp extends Command
         $excludedPrefixes = [
             'pub/media/tmp/',
             'var/tmp/',
-            'webp_temp/',
+            'pub/media/webp_temp/',
             'pub/media/catalog/product/cache/',
             'pub/media/.thumbs',
         ];
