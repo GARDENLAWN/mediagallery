@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace GardenLawn\MediaGallery\Model;
 
 use Exception;
-use GardenLawn\Core\Model\S3Adapter;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Exception\RuntimeException;
