@@ -13,7 +13,7 @@
         </arguments>
     </type>
 
-    <type name="GardenLawn\MediaGallery\Model\S3Adapter">
+    <type name="GardenLawn\Core\Model\S3Adapter">
         <arguments>
             <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
         </arguments>
@@ -23,7 +23,7 @@
         <arguments>
             <argument name="galleryFactory" xsi:type="object">GardenLawn\MediaGallery\Model\GalleryFactory\Proxy</argument>
             <argument name="galleryResource" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Proxy</argument>
-            <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
+            <argument name="s3Adapter" xsi:type="object">GardenLawn\Core\Model\S3Adapter\Proxy</argument>
         </arguments>
     </type>
 
@@ -42,7 +42,7 @@
         <arguments>
             <argument name="resourceConnection" xsi:type="object">Magento\Framework\App\ResourceConnection\Proxy</argument>
             <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface\Proxy</argument>
-            <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
+            <argument name="s3Adapter" xsi:type="object">GardenLawn\Core\Model\S3Adapter\Proxy</argument>
             <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
         </arguments>
     </type>
