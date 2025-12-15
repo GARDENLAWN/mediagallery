@@ -69,3 +69,24 @@ Tworzy galerie na podstawie folderów, linkuje do nich zasoby i opcjonalnie czy�
     ```sh
     bin/magento gardenlawn:mediagallery:populate-all --with-prune --dry-run
     ```
+
+### 4. `gardenlawn:mediagallery:deduplicate-assets`
+
+Wyszukuje i usuwa zduplikowane zasoby (pliki o tej samej ścieżce) z tabeli `media_gallery_asset`.
+
+*   **Działanie:**
+    1.  Znajduje wszystkie ścieżki plików, które mają więcej niż jeden wpis w bazie.
+    2.  Dla każdej zduplikowanej ścieżki zachowuje najstarszy wpis (o najniższym `id`).
+    3.  Aktualizuje wszystkie powiązania w tabeli `gardenlawn_mediagallery_asset_link`, aby wskazywały na zachowany wpis.
+    4.  Usuwa pozostałe, zduplikowane wpisy z tabeli `media_gallery_asset`.
+
+*   **Podstawowe użycie:**
+    ```sh
+    bin/magento gardenlawn:mediagallery:deduplicate-assets
+    ```
+
+*   **Opcje:**
+    *   `--dry-run`: Wyświetla, które zasoby zostałyby usunięte, bez wprowadzania zmian w bazie danych. Zalecane do uruchomienia przed właściwą operacją.
+        ```sh
+        bin/magento gardenlawn:mediagallery:deduplicate-assets --dry-run
+        ```

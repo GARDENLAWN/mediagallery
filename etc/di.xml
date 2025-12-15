@@ -9,6 +9,7 @@
                 <item name="gardenlawn_mediagallery_sync" xsi:type="object">GardenLawn\MediaGallery\Console\Command\SyncS3Assets</item>
                 <item name="gardenlawn_mediagallery_populate" xsi:type="object">GardenLawn\MediaGallery\Console\Command\PopulateAssetLinks</item>
                 <item name="gardenlawn_mediagallery_convert_to_webp" xsi:type="object">GardenLawn\MediaGallery\Console\Command\ConvertImagesToWebp</item>
+                <item name="gardenlawn_mediagallery_deduplicate_assets" xsi:type="object">GardenLawn\MediaGallery\Console\Command\DeduplicateAssets</item>
             </argument>
         </arguments>
     </type>
