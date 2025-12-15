@@ -1,6 +1,7 @@
 <?php
 namespace GardenLawn\MediaGallery\Console\Command;
 
+use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -99,7 +100,7 @@ class DeduplicateAssets extends Command
             $output->writeln(sprintf($mode . '<info>Deduplication process finished. Total records removed: %d</info>', $totalIdsToDelete));
             return Command::SUCCESS;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if (!$isDryRun && $connection->isTransactionActive()) {
                 $connection->rollBack();
             }
