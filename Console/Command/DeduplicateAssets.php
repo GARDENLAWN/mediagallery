@@ -11,7 +11,7 @@ use Psr\Log\LoggerInterface;
 
 class DeduplicateAssets extends Command
 {
-    const DRY_RUN_OPTION = 'dry-run';
+    const string DRY_RUN_OPTION = 'dry-run';
 
     protected ResourceConnection $resourceConnection;
     protected LoggerInterface $logger;
