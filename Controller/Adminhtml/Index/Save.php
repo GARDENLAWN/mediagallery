@@ -10,7 +10,7 @@ use GardenLawn\MediaGallery\Api\GalleryRepositoryInterface;
 use GardenLawn\MediaGallery\Model\GalleryFactory;
 use GardenLawn\MediaGallery\Model\ResourceModel\Gallery\CollectionFactory as GalleryCollectionFactory;
 use Magento\Framework\Controller\Result\Redirect;
-use Magento\Framework\Controller\Result\RawFactory;
+use Magento\Framework\View\Result\PageFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Psr\Log\LoggerInterface;
 
@@ -20,7 +20,7 @@ class Save extends Action
     private GalleryFactory $galleryFactory;
     private LoggerInterface $logger;
     private GalleryCollectionFactory $galleryCollectionFactory;
-    private RawFactory $resultRawFactory;
+    private PageFactory $resultPageFactory;
 
     public function __construct(
         Context $context,
@@ -28,13 +28,13 @@ class Save extends Action
         GalleryFactory $galleryFactory,
         LoggerInterface $logger,
         GalleryCollectionFactory $galleryCollectionFactory,
-        RawFactory $resultRawFactory
+        PageFactory $resultPageFactory
     ) {
         $this->galleryRepository = $galleryRepository;
         $this->galleryFactory = $galleryFactory;
         $this->logger = $logger;
         $this->galleryCollectionFactory = $galleryCollectionFactory;
-        $this->resultRawFactory = $resultRawFactory;
+        $this->resultPageFactory = $resultPageFactory;
         parent::__construct($context);
     }
 
@@ -90,18 +90,7 @@ class Save extends Action
             $this->messageManager->addSuccessMessage(__('You saved the gallery.'));
             $this->logger->info('Gallery saved', ['gallery_id' => $model->getId()]);
 
-            // Instead of redirecting, return a script that reloads the tree and closes the window
-            if (!$this->getRequest()->getParam('back')) {
-                $resultRaw = $this->resultRawFactory->create();
-                $resultRaw->setContents(
-                    "<script>
-                        window.parent.jQuery('body').trigger('gallery:tree:reload');
-                        window.parent.jQuery('.modal-header .action-close').trigger('click');
-                    </script>"
-                );
-                return $resultRaw;
-            }
-
+            // Always redirect to edit page (Save acts as Save and Continue)
             return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId(), '_current' => true]);
 
         } catch (Exception $e) {

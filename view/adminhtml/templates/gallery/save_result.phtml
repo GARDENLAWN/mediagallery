@@ -1,0 +1,36 @@
+<div id="gallery-save-result-message" style="display:none;">
+    <?= $block->escapeHtml(__('Gallery saved successfully. Closing window...')) ?>
+</div>
+<script>
+    require(['jquery'], function($) {
+        $(document).ready(function() {
+            try {
+                // Check if we are inside an iframe/modal
+                if (window.parent && window.parent !== window) {
+                    var $parentBody = $(window.parent.document.body);
+
+                    // Trigger reload event
+                    $parentBody.trigger('gallery:tree:reload');
+
+                    // Close the modal
+                    // We try multiple selectors to find the close button or the modal instance
+                    var $closeBtn = $(window.parent.document).find('.modal-header .action-close, .modal-popup .action-close');
+
+                    if ($closeBtn.length) {
+                        $closeBtn.trigger('click');
+                    } else {
+                        // Fallback: try to close using Magento's modal widget if available on parent
+                        // This is tricky without knowing the exact modal ID, but usually the close button click is enough.
+                        console.warn('Close button not found in parent window.');
+                    }
+                } else {
+                    // Not in an iframe, maybe redirect back?
+                    // window.location.href = '...';
+                    console.log('Not inside an iframe/modal.');
+                }
+            } catch (e) {
+                console.error('Error reloading gallery tree or closing modal:', e);
+            }
+        });
+    });
+</script>
