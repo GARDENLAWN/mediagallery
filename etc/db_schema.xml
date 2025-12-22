@@ -5,6 +5,7 @@
         <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
                 comment="ID"/>
         <column xsi:type="text" name="path" nullable="true" comment="Path"/>
+        <column xsi:type="varchar" name="name" nullable="true" length="255" comment="Name"/>
         <column xsi:type="int" name="sort_order" unsigned="true" nullable="false" identity="false" default="0" comment="SortOrder"/>
         <column xsi:type="boolean" name="enabled" nullable="false" default="1" comment="Enabled"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -16,6 +17,7 @@
                 comment="ID"/>
         <column xsi:type="int" name="gallery_id" unsigned="true" nullable="false" comment="Media Gallery ID"/>
         <column xsi:type="int" name="asset_id" unsigned="true" nullable="false" comment="Media Gallery Asset ID"/>
+        <column xsi:type="varchar" name="alt" nullable="true" length="255" comment="Alt Text"/>
         <column xsi:type="int" name="sort_order" unsigned="true" nullable="false" default="0" comment="Sort Order"/>
         <column xsi:type="boolean" name="enabled" nullable="false" default="1" comment="Enabled"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">

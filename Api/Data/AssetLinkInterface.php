@@ -8,6 +8,7 @@ interface AssetLinkInterface
     public const string ID = 'id';
     public const string GALLERY_ID = 'gallery_id';
     public const string ASSET_ID = 'asset_id';
+    public const string ALT = 'alt';
     public const string SORT_ORDER = 'sort_order';
     public const string ENABLED = 'enabled';
 
@@ -55,6 +56,21 @@ interface AssetLinkInterface
      * @return AssetLinkInterface
      */
     public function setAssetId(int $assetId): AssetLinkInterface;
+
+    /**
+     * Get alt text
+     *
+     * @return string|null
+     */
+    public function getAlt(): ?string;
+
+    /**
+     * Set alt text
+     *
+     * @param string|null $alt
+     * @return AssetLinkInterface
+     */
+    public function setAlt(?string $alt): AssetLinkInterface;
 
     /**
      * Get sort order

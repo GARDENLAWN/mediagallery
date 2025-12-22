@@ -54,6 +54,22 @@ class Gallery extends AbstractModel implements GalleryInterface
     /**
      * @inheritDoc
      */
+    public function getName(): ?string
+    {
+        return $this->getData(self::NAME);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setName(?string $name): GalleryInterface
+    {
+        return $this->setData(self::NAME, $name);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getSortOrder(): int
     {
         return (int)$this->getData(self::SORT_ORDER);

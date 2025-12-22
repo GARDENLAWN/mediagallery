@@ -84,6 +84,27 @@ class AssetLink extends AbstractModel implements AssetLinkInterface
     }
 
     /**
+     * Get alt text
+     *
+     * @return string|null
+     */
+    public function getAlt(): ?string
+    {
+        return $this->getData(self::ALT);
+    }
+
+    /**
+     * Set alt text
+     *
+     * @param string|null $alt
+     * @return AssetLinkInterface
+     */
+    public function setAlt(?string $alt): AssetLinkInterface
+    {
+        return $this->setData(self::ALT, $alt);
+    }
+
+    /**
      * Get sort order
      *
      * @return int

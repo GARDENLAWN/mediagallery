@@ -10,6 +10,7 @@ interface GalleryInterface
      */
     public const string ID = 'id';
     public const string PATH = 'path';
+    public const string NAME = 'name';
     public const string SORT_ORDER = 'sort_order';
     public const string ENABLED = 'enabled';
 
@@ -42,6 +43,21 @@ interface GalleryInterface
      * @return $this
      */
     public function setPath(string $path): self;
+
+    /**
+     * Get name
+     *
+     * @return string|null
+     */
+    public function getName(): ?string;
+
+    /**
+     * Set name
+     *
+     * @param string|null $name
+     * @return $this
+     */
+    public function setName(?string $name): self;
 
     /**
      * Get sort order
