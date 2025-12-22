@@ -63,6 +63,13 @@
                 </item>
             </argument>
         </column>
-        <!-- Add actions column (delete link) here later -->
+        <actionsColumn name="actions" class="GardenLawn\MediaGallery\Ui\Component\Listing\Column\AssetLinkActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="indexField" xsi:type="string">id</item>
+                    <item name="sortOrder" xsi:type="number">200</item>
+                </item>
+            </argument>
+        </actionsColumn>
     </columns>
 </listing>

@@ -61,7 +61,7 @@ class Tiles extends Template
                 'enabled' => (bool)$assetLink->getEnabled(),
                 'sort_order' => $assetLink->getSortOrder(),
                 'thumbnail' => $assetLink->getData('path') ? $mediaUrl . $assetLink->getData('path') : '',
-                'edit_url' => '#' // Define edit URL for asset link later
+                'edit_url' => $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/edit', ['id' => $assetLink->getId(), 'gallery_id' => $galleryId])
             ];
         }
 
@@ -79,6 +79,6 @@ class Tiles extends Template
 
     public function getAddNewAssetLinkUrl(int $galleryId): string
     {
-        return '#';
+        return $this->getUrl('gardenlawn_mediagallery_assetlink/assetlink/edit', ['gallery_id' => $galleryId]);
     }
 }

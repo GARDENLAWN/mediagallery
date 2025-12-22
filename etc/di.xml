@@ -2,6 +2,8 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="GardenLawn\MediaGallery\Api\GalleryRepositoryInterface" type="GardenLawn\MediaGallery\Model\GalleryRepository" />
     <preference for="GardenLawn\MediaGallery\Api\Data\GalleryInterface" type="GardenLawn\MediaGallery\Model\Gallery" />
+    <preference for="GardenLawn\MediaGallery\Api\AssetLinkRepositoryInterface" type="GardenLawn\MediaGallery\Model\AssetLinkRepository" />
+    <preference for="GardenLawn\MediaGallery\Api\Data\AssetLinkInterface" type="GardenLawn\MediaGallery\Model\AssetLink" />
 
     <type name="Magento\Framework\Console\CommandList">
         <arguments>

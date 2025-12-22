@@ -61,7 +61,11 @@ class Save extends Action implements HttpPostActionInterface
 
         if ($data) {
             $id = (int)($data['id'] ?? 0);
-            $galleryId = (int)($data['gallery_id'] ?? 0);
+
+            // If ID is not in POST data, try to get it from request param
+            if (!$id) {
+                $id = (int)$this->getRequest()->getParam('id');
+            }
 
             try {
                 if ($id) {
@@ -70,26 +74,49 @@ class Save extends Action implements HttpPostActionInterface
                     $assetLink = $this->assetLinkFactory->create();
                 }
 
-                $assetLink->setGalleryId($galleryId);
-                $assetLink->setAssetId((int)$data['asset_id']);
+                // Only set gallery_id and asset_id if they are present in data (for new links)
+                // For existing links, we might not want to change them if they are disabled in form
+                if (isset($data['gallery_id'])) {
+                    $assetLink->setGalleryId((int)$data['gallery_id']);
+                }
+                if (isset($data['asset_id'])) {
+                    $assetLink->setAssetId((int)$data['asset_id']);
+                }
+
                 $assetLink->setSortOrder((int)($data['sort_order'] ?? 0));
                 $assetLink->setEnabled((bool)($data['enabled'] ?? false));
 
+                if (isset($data['alt'])) {
+                    $assetLink->setAlt($data['alt']);
+                }
+
                 $this->assetLinkRepository->save($assetLink);
                 $this->messageManager->addSuccessMessage(__('You saved the asset link.'));
+
+                // Get gallery ID for redirection
+                $galleryId = $assetLink->getGalleryId();
+
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
                 $this->logger->error($e->getMessage());
+                // If error, try to redirect back to edit form
+                if ($id) {
+                     return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
+                }
             } catch (\Exception $e) {
                 $this->messageManager->addErrorMessage(__('Something went wrong while saving the asset link.'));
                 $this->logger->critical($e);
+                 // If error, try to redirect back to edit form
+                if ($id) {
+                     return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
+                }
             }
         }
 
         // Redirect back to the gallery edit page
         if (isset($galleryId) && $galleryId) {
-            return $resultRedirect->setPath('*/*/edit', ['id' => $galleryId]);
+            return $resultRedirect->setPath('gardenlawn_mediagallery/index/edit', ['id' => $galleryId]);
         }
-        return $resultRedirect->setPath('*/*/'); // Fallback to gallery listing
+        return $resultRedirect->setPath('gardenlawn_mediagallery/index/index'); // Fallback to gallery listing
     }
 }
