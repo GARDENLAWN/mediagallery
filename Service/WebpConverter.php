@@ -76,6 +76,7 @@ class WebpConverter
             $success = true;
 
             if ($createThumbnail) {
+                // Pass the already downloaded local file path to avoid re-downloading from S3
                 $this->createThumbnail($localTempPath, $sourceFilePath, $thumbnailWidth, $thumbnailHeight, $quality, $output, $filesToClean);
             }
 
@@ -192,8 +193,20 @@ class WebpConverter
 
             if (in_array($sourceExtension, $copyOnlyExtensions)) {
                 $this->log($output, "  -> Source is '{$sourceExtension}', copying directly without resizing...");
-                // FIX: Use copyFile for S3 compatibility
-                $this->mediaDirectory->copyFile($sourceLocalOriginal, $thumbnailS3Path);
+                // Use copyFile for S3 compatibility
+                // sourceLocalOriginal is an absolute path, but copyFile expects relative path for source if it's in media dir
+                // However, sourceLocalOriginal is in webp_temp which is in media dir.
+                // Let's get relative path for sourceLocalOriginal
+                $mediaRoot = $this->mediaDirectory->getAbsolutePath();
+                if (str_starts_with($sourceLocalOriginal, $mediaRoot)) {
+                    $relativeSource = substr($sourceLocalOriginal, strlen($mediaRoot));
+                    $this->mediaDirectory->copyFile($relativeSource, $thumbnailS3Path);
+                } else {
+                    // Fallback if path logic fails, though it shouldn't with getAbsolutePath
+                    $this->logger->warning("Could not determine relative path for thumbnail copy: $sourceLocalOriginal");
+                    return false;
+                }
+
                 $this->log($output, "  -> <info>Thumbnail copied successfully to {$thumbnailS3Path}.</info>");
             } else {
                 $uniqueThumbName = str_replace('/', '_', $thumbnailS3Path);
@@ -220,8 +233,12 @@ class WebpConverter
                 $thumbAdapter->save($localThumbnailPath);
 
                 $this->log($output, "  -> Uploading thumbnail to S3 at <comment>$thumbnailS3Path</comment>...");
-                // FIX: Use copyFile for S3 compatibility
-                $this->mediaDirectory->copyFile($localThumbnailPath, $thumbnailS3Path);
+
+                // Get relative path for localThumbnailPath to upload
+                $mediaRoot = $this->mediaDirectory->getAbsolutePath();
+                $relativeLocalThumb = substr($localThumbnailPath, strlen($mediaRoot));
+
+                $this->mediaDirectory->copyFile($relativeLocalThumb, $thumbnailS3Path);
                 $this->log($output, "  -> <info>Thumbnail created successfully.</info>");
             }
             return true;
@@ -239,8 +256,17 @@ class WebpConverter
     {
         $this->log($output, "  -> Cleaning up temporary files...");
         foreach ($filesToClean as $file) {
-            if ($this->mediaDirectory->isExist($file)) {
-                $this->mediaDirectory->delete($file);
+            // Check if file exists before deleting.
+            // Note: isExist expects relative path usually, but here we have absolute paths in $filesToClean
+            // Let's convert to relative if needed or use driver directly.
+            // However, $this->mediaDirectory->isExist() works with relative paths.
+
+            $mediaRoot = $this->mediaDirectory->getAbsolutePath();
+            if (str_starts_with($file, $mediaRoot)) {
+                $relativeFile = substr($file, strlen($mediaRoot));
+                if ($this->mediaDirectory->isExist($relativeFile)) {
+                    $this->mediaDirectory->delete($relativeFile);
+                }
             }
         }
         $this->log($output, "  -> Cleanup complete.");
