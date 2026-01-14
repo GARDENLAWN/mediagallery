@@ -4,6 +4,11 @@
     <module name="GardenLawn_MediaGallery" setup_version="1.0.0">
         <sequence>
             <module name="GardenLawn_Core"/>
+            <module name="Magento_AwsS3"/>
+            <module name="Magento_Cms"/>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_MediaStorage"/>
+            <module name="Magento_RemoteStorage"/>
         </sequence>
     </module>
 </config>

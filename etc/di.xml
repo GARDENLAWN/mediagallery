@@ -5,6 +5,50 @@
     <preference for="GardenLawn\MediaGallery\Api\AssetLinkRepositoryInterface" type="GardenLawn\MediaGallery\Model\AssetLinkRepository" />
     <preference for="GardenLawn\MediaGallery\Api\Data\AssetLinkInterface" type="GardenLawn\MediaGallery\Model\AssetLink" />
 
+    <!-- S3 Adapter & Synchronizer (Moved from Core) -->
+    <type name="GardenLawn\MediaGallery\Model\S3Adapter">
+        <arguments>
+            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="GardenLawn\MediaGallery\Model\S3AssetSynchronizer">
+        <arguments>
+            <argument name="resourceConnection" xsi:type="object">Magento\Framework\App\ResourceConnection\Proxy</argument>
+            <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface\Proxy</argument>
+            <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
+            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- Plugins (Moved from Core) -->
+    <preference for="Magento\AwsS3\Driver\AwsS3" type="GardenLawn\MediaGallery\Plugin\AwsS3\Driver\AwsS3Plugin"/>
+
+    <type name="Magento\Framework\File\Uploader">
+        <plugin name="gardenlawn_mediagallery_framework_file_uploader"
+                type="GardenLawn\MediaGallery\Plugin\Framework\File\UploaderPlugin" sortOrder="10"/>
+    </type>
+    <type name="Magento\Framework\Image\Adapter\Gd2">
+        <plugin name="gardenlawn_mediagallery_webp_support" type="GardenLawn\MediaGallery\Plugin\Framework\Image\Adapter\Gd2Plugin"/>
+    </type>
+    <type name="Magento\Catalog\Model\View\Asset\Image">
+        <plugin name="gardenlawn_mediagallery_catalog_asset_image_webp"
+                type="GardenLawn\MediaGallery\Plugin\Catalog\Model\View\Asset\ImagePlugin"/>
+        <plugin name="gardenlawn_mediagallery_catalog_asset_image_transformation_webp"
+                type="GardenLawn\MediaGallery\Plugin\Catalog\Model\View\Asset\ImageTransformationPlugin"/>
+    </type>
+    <type name="Magento\Cms\Model\Wysiwyg\Images\Storage">
+        <plugin name="gardenlawn_mediagallery_wysiwyg_storage_plugin"
+                type="GardenLawn\MediaGallery\Plugin\Cms\Model\Wysiwyg\Images\StoragePlugin" sortOrder="10"/>
+        <plugin name="gardenlawn_mediagallery_wysiwyg_storage_resize_file_plugin"
+                type="GardenLawn\MediaGallery\Plugin\Cms\Model\Wysiwyg\Images\StorageResizeFilePlugin" sortOrder="20"/>
+    </type>
+    <type name="Magento\MediaStorage\Model\File\Validator\NotProtectedExtension">
+        <plugin name="gardenlawn_mediagallery_whitelist_modern_image_formats"
+                type="GardenLawn\MediaGallery\Plugin\MediaStorage\Model\File\Validator\NotProtectedExtensionPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Commands -->
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -16,17 +60,12 @@
         </arguments>
     </type>
 
-    <type name="GardenLawn\Core\Model\S3Adapter">
-        <arguments>
-            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
-        </arguments>
-    </type>
-
+    <!-- Updated References -->
     <type name="GardenLawn\MediaGallery\Model\GalleryRepository">
         <arguments>
             <argument name="galleryFactory" xsi:type="object">GardenLawn\MediaGallery\Model\GalleryFactory\Proxy</argument>
             <argument name="galleryResource" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\Gallery\Proxy</argument>
-            <argument name="s3Adapter" xsi:type="object">GardenLawn\Core\Model\S3Adapter\Proxy</argument>
+            <argument name="s3Adapter" xsi:type="object">GardenLawn\MediaGallery\Model\S3Adapter\Proxy</argument>
         </arguments>
     </type>
 
@@ -38,15 +77,6 @@
             <argument name="assetLinkFactory" xsi:type="object">GardenLawn\MediaGallery\Model\AssetLinkFactory\Proxy</argument>
             <argument name="assetLinkResource" xsi:type="object">GardenLawn\MediaGallery\Model\ResourceModel\AssetLink\Proxy</argument>
             <argument name="getAssetsByPaths" xsi:type="object">Magento\MediaGalleryApi\Api\GetAssetsByPathsInterface\Proxy</argument>
-        </arguments>
-    </type>
-
-    <type name="GardenLawn\Core\Model\S3AssetSynchronizer">
-        <arguments>
-            <argument name="resourceConnection" xsi:type="object">Magento\Framework\App\ResourceConnection\Proxy</argument>
-            <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface\Proxy</argument>
-            <argument name="s3Adapter" xsi:type="object">GardenLawn\Core\Model\S3Adapter\Proxy</argument>
-            <argument name="deploymentConfig" xsi:type="object">Magento\Framework\App\DeploymentConfig\Proxy</argument>
         </arguments>
     </type>
 
