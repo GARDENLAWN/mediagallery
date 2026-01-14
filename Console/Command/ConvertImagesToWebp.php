@@ -5,7 +5,7 @@ namespace GardenLawn\MediaGallery\Console\Command;
 
 use Exception;
 use GardenLawn\MediaGallery\Service\WebpConverter;
-use GardenLawn\Core\Model\S3Adapter;
+use GardenLawn\MediaGallery\Model\S3Adapter;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
 use Symfony\Component\Console\Command\Command;
