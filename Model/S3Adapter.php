@@ -270,6 +270,26 @@ class S3Adapter
     /**
      * @throws Exception
      */
+    public function listObjectsByStorageType(string $storageType, string $prefix = ''): \Generator
+    {
+        $s3Client = $this->getS3Client();
+        $fullPrefix = $this->getPrefixedPath($storageType, $prefix);
+
+        $paginator = $s3Client->getPaginator('ListObjectsV2', [
+            'Bucket' => $this->bucket,
+            'Prefix' => $fullPrefix,
+        ]);
+
+        foreach ($paginator as $result) {
+            foreach ($result['Contents'] ?? [] as $object) {
+                yield $object['Key'];
+            }
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
     public function doesObjectExist(string $path): bool
     {
         $s3Client = $this->getS3Client();
