@@ -164,6 +164,7 @@ class S3Adapter
      * Uploads multiple static asset files concurrently.
      *
      * @param array $files An array of files, where each element is an array with 'sourcePath' and 'destinationPath'.
+     *                     Optionally 'copyFromS3Key' can be set to perform a server-side copy instead of upload.
      * @param callable|null $progressCallback A callback to be invoked as files are uploaded.
      * @throws Exception
      */
@@ -174,15 +175,31 @@ class S3Adapter
         $commands = function () use ($s3Client, $files) {
             foreach ($files as $file) {
                 $fullKey = $this->getPrefixedPath('static', $file['destinationPath']);
-                yield $s3Client->getCommand('PutObject', [
-                    'Bucket' => $this->bucket,
-                    'Key' => $fullKey,
-                    'SourceFile' => $file['sourcePath'],
-                    'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
-                    'Metadata' => [
-                        'CacheControl' => 'public, max-age=31536000'
-                    ]
-                ]);
+
+                if (isset($file['copyFromS3Key']) && $file['copyFromS3Key']) {
+                    // Perform server-side copy
+                    yield $s3Client->getCommand('CopyObject', [
+                        'Bucket' => $this->bucket,
+                        'Key' => $fullKey,
+                        'CopySource' => $this->bucket . '/' . $file['copyFromS3Key'],
+                        'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                        'Metadata' => [
+                            'CacheControl' => 'public, max-age=31536000'
+                        ],
+                        'MetadataDirective' => 'REPLACE' // Ensure we set new metadata
+                    ]);
+                } else {
+                    // Perform standard upload
+                    yield $s3Client->getCommand('PutObject', [
+                        'Bucket' => $this->bucket,
+                        'Key' => $fullKey,
+                        'SourceFile' => $file['sourcePath'],
+                        'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                        'Metadata' => [
+                            'CacheControl' => 'public, max-age=31536000'
+                        ]
+                    ]);
+                }
             }
         };
 
@@ -196,7 +213,7 @@ class S3Adapter
             'rejected' => function ($reason, $index) {
                 // For simplicity, we'll throw an exception. In a real-world scenario,
                 // you might want to log this and continue, or implement a retry mechanism.
-                throw new Exception("Failed to upload file with index {$index}. Reason: {$reason}");
+                throw new Exception("Failed to upload/copy file with index {$index}. Reason: {$reason}");
             },
         ]);
 
@@ -315,6 +332,37 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
         ]);
+    }
+
+    /**
+     * Deletes multiple objects from S3.
+     *
+     * @param array $keys Array of full S3 keys to delete.
+     * @throws Exception
+     */
+    public function deleteObjects(array $keys): void
+    {
+        if (empty($keys)) {
+            return;
+        }
+
+        $s3Client = $this->getS3Client();
+
+        // S3 deleteObjects accepts max 1000 keys per request
+        $chunks = array_chunk($keys, 1000);
+
+        foreach ($chunks as $chunk) {
+            $objects = array_map(function ($key) {
+                return ['Key' => $key];
+            }, $chunk);
+
+            $s3Client->deleteObjects([
+                'Bucket' => $this->bucket,
+                'Delete' => [
+                    'Objects' => $objects,
+                ],
+            ]);
+        }
     }
 
     /**
