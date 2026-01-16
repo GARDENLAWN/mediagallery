@@ -282,7 +282,7 @@ class S3Adapter
 
         foreach ($paginator as $result) {
             foreach ($result['Contents'] ?? [] as $object) {
-                yield $object['Key'];
+                yield $object;
             }
         }
     }
