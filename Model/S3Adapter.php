@@ -298,8 +298,11 @@ class S3Adapter
         ]);
 
         foreach ($paginator as $result) {
-            foreach ($result['Contents'] ?? [] as $object) {
-                yield $object;
+            // Check if 'Contents' exists and is an array before iterating
+            if (isset($result['Contents']) && is_array($result['Contents'])) {
+                foreach ($result['Contents'] as $object) {
+                    yield $object;
+                }
             }
         }
     }
