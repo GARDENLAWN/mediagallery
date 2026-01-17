@@ -178,10 +178,28 @@ class S3Adapter
 
                 if (isset($file['copyFromS3Key']) && $file['copyFromS3Key']) {
                     // Perform server-side copy
+                    // IMPORTANT: CopySource must be URL-encoded if it contains special characters
+                    $copySource = $this->bucket . '/' . $file['copyFromS3Key'];
+
+                    // Check if source object exists before copying to avoid 404 errors
+                    if (!$s3Client->doesObjectExist($this->bucket, $file['copyFromS3Key'])) {
+                         // Fallback to upload if source doesn't exist (e.g. it was deleted in the meantime)
+                         yield $s3Client->getCommand('PutObject', [
+                            'Bucket' => $this->bucket,
+                            'Key' => $fullKey,
+                            'SourceFile' => $file['sourcePath'],
+                            'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                            'Metadata' => [
+                                'CacheControl' => 'public, max-age=31536000'
+                            ]
+                        ]);
+                        continue;
+                    }
+
                     yield $s3Client->getCommand('CopyObject', [
                         'Bucket' => $this->bucket,
                         'Key' => $fullKey,
-                        'CopySource' => $this->bucket . '/' . $file['copyFromS3Key'],
+                        'CopySource' => str_replace('+', '%2B', $copySource), // Basic encoding fix
                         'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
                         'Metadata' => [
                             'CacheControl' => 'public, max-age=31536000'
