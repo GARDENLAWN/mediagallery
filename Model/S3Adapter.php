@@ -68,6 +68,7 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
             'Body' => '',
+            'ACL' => 'public-read',
             'Metadata' => [
                 'CacheControl' => 'public, max-age=31536000'
             ]
@@ -112,6 +113,7 @@ class S3Adapter
                 'Bucket' => $this->bucket,
                 'CopySource' => "{$this->bucket}/{$sourceKey}",
                 'Key' => $destinationKey,
+                'ACL' => 'public-read',
             ]);
         }
 
@@ -131,6 +133,7 @@ class S3Adapter
             'Key' => $fullPath,
             'SourceFile' => $filePath,
             'ContentType' => $this->getContentTypeByPath($destinationPath),
+            'ACL' => 'public-read',
             'Metadata' => [
                 'CacheControl' => 'public, max-age=31536000'
             ]
@@ -154,6 +157,7 @@ class S3Adapter
             'Key' => $fullKey,
             'SourceFile' => $filePath,
             'ContentType' => $this->getContentTypeByPath($destinationPath),
+            'ACL' => 'public-read',
             'Metadata' => [
                 'CacheControl' => 'public, max-age=31536000'
             ]
@@ -189,6 +193,7 @@ class S3Adapter
                             'Key' => $fullKey,
                             'SourceFile' => $file['sourcePath'],
                             'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                            'ACL' => 'public-read',
                             'Metadata' => [
                                 'CacheControl' => 'public, max-age=31536000'
                             ]
@@ -201,6 +206,7 @@ class S3Adapter
                         'Key' => $fullKey,
                         'CopySource' => str_replace('+', '%2B', $copySource), // Basic encoding fix
                         'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                        'ACL' => 'public-read',
                         'Metadata' => [
                             'CacheControl' => 'public, max-age=31536000'
                         ],
@@ -213,6 +219,7 @@ class S3Adapter
                         'Key' => $fullKey,
                         'SourceFile' => $file['sourcePath'],
                         'ContentType' => $this->getContentTypeByPath($file['destinationPath']),
+                        'ACL' => 'public-read',
                         'Metadata' => [
                             'CacheControl' => 'public, max-age=31536000'
                         ]
@@ -254,6 +261,7 @@ class S3Adapter
             'Key' => $destinationKey,
             'Body' => $content,
             'ContentType' => $this->getContentTypeByPath($destinationKey),
+            'ACL' => 'public-read',
             'Metadata' => [
                 'CacheControl' => 'public, max-age=31536000'
             ]
