@@ -92,6 +92,21 @@ class S3Adapter
     }
 
     /**
+     * Deletes a folder by full S3 prefix (bypassing getFullS3Path logic if needed).
+     * Useful for static content which might have different prefix logic.
+     *
+     * @param string $fullPrefix
+     * @throws Exception
+     */
+    public function deleteByPrefix(string $fullPrefix): void
+    {
+        $s3Client = $this->getS3Client();
+        // Ensure prefix ends with / to avoid deleting partial matches (e.g. version1 vs version10)
+        $fullPrefix = rtrim($fullPrefix, '/') . '/';
+        $s3Client->deleteMatchingObjects($this->bucket, $fullPrefix);
+    }
+
+    /**
      * @throws Exception
      */
     public function moveFolder(string $oldPath, string $newPath): void
@@ -170,9 +185,10 @@ class S3Adapter
      * @param array $files An array of files, where each element is an array with 'sourcePath' and 'destinationPath'.
      *                     Optionally 'copyFromS3Key' can be set to perform a server-side copy instead of upload.
      * @param callable|null $progressCallback A callback to be invoked as files are uploaded.
+     * @param int $concurrency Number of concurrent uploads.
      * @throws Exception
      */
-    public function uploadStaticFiles(array $files, ?callable $progressCallback = null): void
+    public function uploadStaticFiles(array $files, ?callable $progressCallback = null, int $concurrency = 25): void
     {
         $s3Client = $this->getS3Client();
 
@@ -182,11 +198,7 @@ class S3Adapter
 
                 if (isset($file['copyFromS3Key']) && $file['copyFromS3Key']) {
                     // Perform server-side copy
-                    // IMPORTANT: CopySource must be URL-encoded if it contains special characters
                     $copySource = $this->bucket . '/' . $file['copyFromS3Key'];
-
-                    // Optimization: We assume the source exists because we just listed it in the main command.
-                    // Removing doesObjectExist check to save API calls and speed up the process.
 
                     yield $s3Client->getCommand('CopyObject', [
                         'Bucket' => $this->bucket,
@@ -216,20 +228,17 @@ class S3Adapter
         };
 
         $pool = new CommandPool($s3Client, $commands(), [
-            'concurrency' => 25, // Can be adjusted
+            'concurrency' => $concurrency,
             'fulfilled' => function ($result, $index) use ($progressCallback) {
                 if (is_callable($progressCallback)) {
                     $progressCallback();
                 }
             },
             'rejected' => function ($reason, $index) {
-                // For simplicity, we'll throw an exception. In a real-world scenario,
-                // you might want to log this and continue, or implement a retry mechanism.
                 throw new Exception("Failed to upload/copy file with index {$index}. Reason: {$reason}");
             },
         ]);
 
-        // Initiate the transfer and wait for it to complete.
         $promise = $pool->promise();
         $promise->wait();
     }
@@ -311,13 +320,46 @@ class S3Adapter
         ]);
 
         foreach ($paginator as $result) {
-            // Check if 'Contents' exists and is an array before iterating
             if (isset($result['Contents']) && is_array($result['Contents'])) {
                 foreach ($result['Contents'] as $object) {
                     yield $object;
                 }
             }
         }
+    }
+
+    /**
+     * Lists "directories" (common prefixes) within a specific path.
+     * Useful for finding version folders like 'static/version123/'
+     *
+     * @param string $storageType
+     * @param string $prefix
+     * @return array
+     * @throws Exception
+     */
+    public function listDirectoriesByStorageType(string $storageType, string $prefix = ''): array
+    {
+        $s3Client = $this->getS3Client();
+        $fullPrefix = $this->getPrefixedPath($storageType, $prefix);
+        // Ensure prefix ends with / if not empty
+        if (!empty($fullPrefix) && !str_ends_with($fullPrefix, '/')) {
+            $fullPrefix .= '/';
+        }
+
+        $results = $s3Client->listObjectsV2([
+            'Bucket' => $this->bucket,
+            'Prefix' => $fullPrefix,
+            'Delimiter' => '/'
+        ]);
+
+        $directories = [];
+        if (isset($results['CommonPrefixes'])) {
+            foreach ($results['CommonPrefixes'] as $prefixInfo) {
+                $directories[] = $prefixInfo['Prefix'];
+            }
+        }
+
+        return $directories;
     }
 
     /**
@@ -336,7 +378,6 @@ class S3Adapter
      */
     public function deleteObject(string $path): void
     {
-        // Prevent deleting SVG files
         if (str_ends_with(strtolower($path), '.svg')) {
             return;
         }
@@ -405,6 +446,10 @@ class S3Adapter
             'json' => 'application/json',
             'html' => 'text/html',
             'xml' => 'application/xml',
+            'ico' => 'image/x-icon',
+            'txt' => 'text/plain',
+            'map' => 'application/json',
+            'gz'  => 'application/x-gzip',
         ];
         return $map[$ext] ?? 'application/octet-stream';
     }
