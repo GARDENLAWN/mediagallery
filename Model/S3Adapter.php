@@ -76,10 +76,8 @@ class S3Adapter
             'Bucket' => $this->bucket,
             'Key' => $fullPath,
             'Body' => '',
+            'CacheControl' => 'public, max-age=31536000',
             // ACL removed: Use Bucket Policy for public access
-            'Metadata' => [
-                'CacheControl' => 'public, max-age=31536000'
-            ]
         ]);
     }
 
@@ -165,9 +163,7 @@ class S3Adapter
             [
                 'params' => [
                     'ContentType' => $contentType,
-                    'Metadata' => [
-                        'CacheControl' => 'public, max-age=31536000'
-                    ]
+                    'CacheControl' => 'public, max-age=31536000',
                 ]
             ]
         );
@@ -198,10 +194,8 @@ class S3Adapter
             'Key' => $fullKey,
             'SourceFile' => $filePath,
             'ContentType' => $this->getContentTypeByPath($destinationPath),
+            'CacheControl' => 'public, max-age=31536000',
             // ACL removed
-            'Metadata' => [
-                'CacheControl' => 'public, max-age=31536000'
-            ]
         ]);
     }
 
@@ -233,10 +227,8 @@ class S3Adapter
                         'Key' => $fullKey,
                         'CopySource' => str_replace('+', '%2B', $copySource),
                         'ContentType' => $contentType,
+                        'CacheControl' => 'public, max-age=31536000',
                         // ACL removed
-                        'Metadata' => [
-                            'CacheControl' => 'public, max-age=31536000'
-                        ],
                         'MetadataDirective' => 'REPLACE'
                     ]);
                 } else {
@@ -246,10 +238,8 @@ class S3Adapter
                         'Key' => $fullKey,
                         'SourceFile' => $file['sourcePath'],
                         'ContentType' => $contentType,
+                        'CacheControl' => 'public, max-age=31536000',
                         // ACL removed
-                        'Metadata' => [
-                            'CacheControl' => 'public, max-age=31536000'
-                        ]
                     ]);
                 }
             }
@@ -299,10 +289,8 @@ class S3Adapter
             'Key' => $destinationKey,
             'Body' => $content,
             'ContentType' => $this->getContentTypeByPath($destinationKey),
+            'CacheControl' => 'public, max-age=31536000',
             // ACL removed
-            'Metadata' => [
-                'CacheControl' => 'public, max-age=31536000'
-            ]
         ]);
     }
 
