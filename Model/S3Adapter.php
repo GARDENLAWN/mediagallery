@@ -5,6 +5,8 @@ namespace GardenLawn\MediaGallery\Model;
 
 use Aws\CommandPool;
 use Aws\S3\S3Client;
+use Aws\S3\Transfer;
+use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\ObjectUploader;
 use Aws\Exception\AwsException;
 use Magento\Framework\App\DeploymentConfig;
@@ -57,6 +59,76 @@ class S3Adapter
     }
 
     /**
+     * Synchronizes a local directory to S3 using Aws\S3\Transfer.
+     *
+     * @param string $sourceDir Local directory path.
+     * @param string $storageType S3 storage type (e.g., 'static', 'media').
+     * @param callable|null $callback Callback for progress/logging (receives 'upload' or 'delete').
+     * @throws Exception
+     */
+    public function sync(string $sourceDir, string $storageType, ?callable $callback = null): void
+    {
+        $s3Client = $this->getS3Client();
+
+        // Resolve full prefix including global prefix (e.g. 'pub/static/')
+        $fullPrefix = $this->getPrefixedPath($storageType, '');
+        $dest = 's3://' . $this->bucket . '/' . $fullPrefix;
+
+        $manager = new Transfer($s3Client, $sourceDir, $dest, [
+            'delete' => true,
+            'concurrency' => 25,
+            'before' => function ($command) use ($callback) {
+                if ($command->getName() === 'PutObject') {
+                    $command['CacheControl'] = 'public, max-age=0, must-revalidate';
+                    if ($callback) $callback('upload');
+                } elseif ($command->getName() === 'DeleteObject') {
+                    if ($callback) $callback('delete');
+                }
+            },
+        ]);
+
+        $manager->transfer();
+    }
+
+    /**
+     * Creates a CloudFront invalidation.
+     *
+     * @param string $distributionId
+     * @param array $paths
+     * @return string The Invalidation ID.
+     * @throws Exception
+     */
+    public function invalidateCloudFront(string $distributionId, array $paths = ['/*']): string
+    {
+        $key = $this->deploymentConfig->get('remote_storage/config/credentials/key');
+        $secret = $this->deploymentConfig->get('remote_storage/config/credentials/secret');
+        $region = $this->deploymentConfig->get('remote_storage/config/region') ?? 'us-east-1';
+
+        $cfClient = new CloudFrontClient([
+            'version' => 'latest',
+            'region' => $region,
+            'credentials' => ['key' => $key, 'secret' => $secret],
+            'http'    => [
+                'connect_timeout' => 5,
+                'timeout'         => 30,
+            ]
+        ]);
+
+        $result = $cfClient->createInvalidation([
+            'DistributionId' => $distributionId,
+            'InvalidationBatch' => [
+                'CallerReference' => uniqid(),
+                'Paths' => [
+                    'Quantity' => count($paths),
+                    'Items' => $paths,
+                ],
+            ],
+        ]);
+
+        return $result->get('Invalidation')['Id'];
+    }
+
+    /**
      * @throws Exception
      */
     public function getFullS3Path(string $path): string
@@ -77,7 +149,6 @@ class S3Adapter
             'Key' => $fullPath,
             'Body' => '',
             'CacheControl' => 'public, max-age=31536000',
-            // ACL removed: Use Bucket Policy for public access
         ]);
     }
 
@@ -134,7 +205,6 @@ class S3Adapter
                 'Bucket' => $this->bucket,
                 'CopySource' => "{$this->bucket}/{$sourceKey}",
                 'Key' => $destinationKey,
-                // ACL removed
             ]);
         }
 
@@ -159,7 +229,7 @@ class S3Adapter
             $this->bucket,
             $fullPath,
             $source,
-            'public-read', // ACL (kept here as ObjectUploader might default to private, but check bucket settings)
+            'public-read',
             [
                 'params' => [
                     'ContentType' => $contentType,
@@ -195,7 +265,6 @@ class S3Adapter
             'SourceFile' => $filePath,
             'ContentType' => $this->getContentTypeByPath($destinationPath),
             'CacheControl' => 'public, max-age=31536000',
-            // ACL removed
         ]);
     }
 
@@ -228,7 +297,6 @@ class S3Adapter
                         'CopySource' => str_replace('+', '%2B', $copySource),
                         'ContentType' => $contentType,
                         'CacheControl' => 'public, max-age=31536000',
-                        // ACL removed
                         'MetadataDirective' => 'REPLACE'
                     ]);
                 } else {
@@ -239,23 +307,10 @@ class S3Adapter
                         'SourceFile' => $file['sourcePath'],
                         'ContentType' => $contentType,
                         'CacheControl' => 'public, max-age=31536000',
-                        // ACL removed
                     ]);
                 }
             }
         };
-
-        // Retry logic wrapper
-        $attempt = 0;
-        $failedFiles = [];
-
-        // We can't easily retry individual commands inside CommandPool generator without complex logic.
-        // Instead, we rely on S3Client's built-in HTTP retries (configured in constructor).
-        // If CommandPool fails, it throws exception for the specific command.
-
-        // However, for bulk operations, we want to fail fast on fatal errors but maybe log warnings on minor ones?
-        // No, for static sync, consistency is key. If one file fails, the deployment is broken.
-        // So we rely on the robust S3Client retries (set to 3 in constructor).
 
         $pool = new CommandPool($s3Client, $commands(), [
             'concurrency' => $concurrency,
@@ -265,7 +320,6 @@ class S3Adapter
                 }
             },
             'rejected' => function ($reason, $index) {
-                // $reason is the exception
                 $msg = $reason instanceof \Exception ? $reason->getMessage() : (string)$reason;
                 throw new Exception("Failed to upload/copy file at index {$index}. Reason: {$msg}");
             },
@@ -290,7 +344,6 @@ class S3Adapter
             'Body' => $content,
             'ContentType' => $this->getContentTypeByPath($destinationKey),
             'CacheControl' => 'public, max-age=31536000',
-            // ACL removed
         ]);
     }
 
