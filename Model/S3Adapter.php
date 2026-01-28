@@ -59,7 +59,8 @@ class S3Adapter
     }
 
     /**
-     * Synchronizes a local directory to S3 using Aws\S3\Transfer.
+     * Synchronizes a local directory to S3 using Smart Sync (ETag comparison).
+     * Prevents re-uploading identical files even if timestamps differ.
      *
      * @param string $sourceDir Local directory path.
      * @param string $storageType S3 storage type (e.g., 'static', 'media').
@@ -69,25 +70,108 @@ class S3Adapter
     public function sync(string $sourceDir, string $storageType, ?callable $callback = null): void
     {
         $s3Client = $this->getS3Client();
+        $bucket = $this->bucket;
 
-        // Resolve full prefix including global prefix (e.g. 'pub/static/')
-        $fullPrefix = $this->getPrefixedPath($storageType, '');
-        $dest = 's3://' . $this->bucket . '/' . $fullPrefix;
+        // 1. Prepare Paths
+        $sourceDir = rtrim($sourceDir, '/');
+        $s3Prefix = $this->getPrefixedPath($storageType, ''); // e.g. "pub/static/"
+        $s3Prefix = rtrim($s3Prefix, '/') . '/';
 
-        $manager = new Transfer($s3Client, $sourceDir, $dest, [
-            'delete' => true,
-            'concurrency' => 25,
-            'before' => function ($command) use ($callback) {
-                if ($command->getName() === 'PutObject') {
-                    $command['CacheControl'] = 'public, max-age=0, must-revalidate';
-                    if ($callback) $callback('upload');
-                } elseif ($command->getName() === 'DeleteObject') {
-                    if ($callback) $callback('delete');
-                }
-            },
+        // 2. Fetch S3 Inventory (Key -> ETag)
+        // We need to know what's already there to avoid re-uploading
+        $s3Objects = [];
+        $paginator = $s3Client->getPaginator('ListObjectsV2', [
+            'Bucket' => $bucket,
+            'Prefix' => $s3Prefix
         ]);
 
-        $manager->transfer();
+        foreach ($paginator as $page) {
+            foreach ($page['Contents'] ?? [] as $object) {
+                // ETag is usually wrapped in quotes
+                $s3Objects[$object['Key']] = trim($object['ETag'], '"');
+            }
+        }
+
+        // 3. Scan Local & Compare
+        $filesToUpload = []; // [ 'source' => ..., 'key' => ... ]
+        $keptKeys = [];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS),
+            \RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($iterator as $file) {
+            /** @var \SplFileInfo $file */
+            if ($file->isDir()) continue;
+
+            $localPath = $file->getPathname();
+            $relativePath = substr($localPath, strlen($sourceDir) + 1);
+            // Fix windows separators if any
+            $relativePath = str_replace('\\', '/', $relativePath);
+
+            $s3Key = $s3Prefix . $relativePath;
+
+            // Calculate Hash (MD5) to compare content, not timestamp
+            $localHash = md5_file($localPath);
+
+            if (isset($s3Objects[$s3Key]) && $s3Objects[$s3Key] === $localHash) {
+                // Content is identical, skip upload
+                $keptKeys[$s3Key] = true;
+            } else {
+                // Content changed or new file
+                $filesToUpload[] = [
+                    'source' => $localPath,
+                    'key' => $s3Key,
+                    'type' => $this->getContentTypeByPath($localPath)
+                ];
+                $keptKeys[$s3Key] = true; // It will be there after upload
+            }
+        }
+
+        // 4. Upload Changed Files (Concurrency using CommandPool)
+        if (!empty($filesToUpload)) {
+            $commands = function () use ($s3Client, $bucket, $filesToUpload) {
+                foreach ($filesToUpload as $file) {
+                    yield $s3Client->getCommand('PutObject', [
+                        'Bucket' => $bucket,
+                        'Key' => $file['key'],
+                        'SourceFile' => $file['source'],
+                        'ContentType' => $file['type'],
+                        'CacheControl' => 'public, max-age=0, must-revalidate',
+                    ]);
+                }
+            };
+
+            $pool = new CommandPool($s3Client, $commands(), [
+                'concurrency' => 25,
+                'fulfilled' => function ($result, $iterKey, $aggregatePromise) use ($callback) {
+                    if ($callback) $callback('upload');
+                },
+                'rejected' => function ($reason, $iterKey, $aggregatePromise) {
+                    $msg = $reason instanceof \Exception ? $reason->getMessage() : (string)$reason;
+                    throw new Exception("Upload failed: " . $msg);
+                },
+            ]);
+
+            $promise = $pool->promise();
+            $promise->wait();
+        }
+
+        // 5. Delete Orphans (Files on S3 that are not local)
+        $keysToDelete = [];
+        foreach (array_keys($s3Objects) as $s3Key) {
+            if (!isset($keptKeys[$s3Key])) {
+                $keysToDelete[] = $s3Key;
+            }
+        }
+
+        if (!empty($keysToDelete)) {
+            $this->deleteObjects($keysToDelete);
+            if ($callback) {
+                foreach ($keysToDelete as $k) $callback('delete');
+            }
+        }
     }
 
     /**
